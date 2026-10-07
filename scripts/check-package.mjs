@@ -32,7 +32,17 @@ if (!Array.isArray(packed) || packed.length !== 1 || !Array.isArray(packed[0].fi
 }
 
 const files = new Set(packed[0].files.map(({ path: relativePath }) => relativePath));
-for (const required of ["dist/cli.js", "dist/standards/registry.yaml", "dist/standards/standards.lock.json", "README.md", "LICENSE"]) {
+for (const required of [
+  "dist/cli.js",
+  "dist/standards/registry.yaml",
+  "dist/standards/standards.lock.json",
+  "README.md",
+  "CONTRIBUTING.md",
+  "SECURITY.md",
+  "CODE_OF_CONDUCT.md",
+  "CHANGELOG.md",
+  "LICENSE",
+]) {
   if (!files.has(required)) throw new Error(`npm 包缺少必需文件: ${required}`);
 }
 for (const relativePath of files) {

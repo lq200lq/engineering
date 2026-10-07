@@ -44,3 +44,4 @@
 
 - 参与项目时请遵守 [行为准则](CODE_OF_CONDUCT.md)。
 - 安全漏洞请按 [安全政策](SECURITY.md) 私下报告，不要创建公开 Issue。
+- npm 包发布步骤见[手动发布指南](https://github.com/lq200lq/engineering/blob/main/docs/releasing.md)。
