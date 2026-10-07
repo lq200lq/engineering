@@ -22,6 +22,8 @@
   "homepage": "https://github.com/lq200lq/engineering#readme",
   "scripts": {
     "build": "tsc",
+    "test": "npm run build && node --test test/*.test.js",
+    "package:check": "npm run build && node scripts/prepare-package.mjs && node scripts/check-package.mjs",
     "prepack": "npm run build && node scripts/prepare-package.mjs"
   },
   "dependencies": {
