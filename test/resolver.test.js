@@ -77,3 +77,22 @@ test("resolveRules rejects symlinked rules", async (t) => {
   const standards = { root, revision: "a".repeat(40), async assertFileMatches() {} };
   await assert.rejects(resolveRules(profile(), registry({ alpha: rule("alpha", { path: "linked.md" }) }), standards), /符号链接/);
 });
+
+test("resolveRules rejects uncommitted deletion from a locked rule directory", async (t) => {
+  const { execFileSync } = await import("node:child_process");
+  const { resolveStandardsSource } = await import("../dist/io/standards.js");
+  const root = await mkdtemp(path.join(os.tmpdir(), "eng-locked-directory-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, "rules"));
+  await writeFile(path.join(root, "rules/a.md"), "A\n");
+  await writeFile(path.join(root, "rules/b.md"), "B\n");
+  const git = (...args) => execFileSync("git", ["-C", root, ...args]);
+  git("init", "-q");
+  git("add", ".");
+  git("-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "fixture");
+  const standards = await resolveStandardsSource(root, ".");
+  const input = registry({ base: rule("base", { path: "rules" }) });
+  assert.equal((await resolveRules(profile(), input, standards)).length, 2);
+  await rm(path.join(root, "rules/b.md"));
+  await assert.rejects(resolveRules(profile(), input, standards), /文件集合/);
+});

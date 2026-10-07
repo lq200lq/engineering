@@ -3,7 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ConfigError } from "../config/load.js";
 import { sha256 } from "../manifest/hash.js";
-import { assertGitFileMatchesHead, getGitHead } from "./git.js";
+import { assertGitFileMatchesHead, getGitHead, getGitMarkdownPaths } from "./git.js";
+import { validateRelativePath } from "./paths.js";
 
 interface StandardsLock {
   formatVersion: 1;
@@ -15,6 +16,15 @@ export interface StandardsSource {
   root: string;
   revision: string;
   assertFileMatches(relativePath: string, content: string): Promise<void>;
+  assertMarkdownPathsMatch(requestedPath: string, actualPaths: string[]): Promise<void>;
+}
+
+function assertMarkdownPathsMatch(lockedPaths: string[], requestedPath: string, actualPaths: string[]): void {
+  const safePath = validateRelativePath(requestedPath, "Registry 规则 path");
+  const expected = lockedPaths.filter((file) => file === safePath || file.startsWith(`${safePath}/`)).sort();
+  if (JSON.stringify(expected) !== JSON.stringify([...actualPaths].sort())) {
+    throw new ConfigError(`规则文件集合与锁定版本不一致，请恢复缺失文件或提交变更: ${safePath}`);
+  }
 }
 
 async function isGitCheckout(root: string): Promise<boolean> {
@@ -29,10 +39,15 @@ async function isGitCheckout(root: string): Promise<boolean> {
 
 async function gitSource(root: string): Promise<StandardsSource> {
   const revision = await getGitHead(root);
+  let markdownPaths: Promise<string[]> | undefined;
   return {
     root,
     revision,
     assertFileMatches: (relativePath, content) => assertGitFileMatchesHead(root, revision, relativePath, content),
+    async assertMarkdownPathsMatch(requestedPath, actualPaths) {
+      markdownPaths ??= getGitMarkdownPaths(root, revision);
+      assertMarkdownPathsMatch(await markdownPaths, requestedPath, actualPaths);
+    },
   };
 }
 
@@ -62,6 +77,7 @@ async function readStandardsLock(root: string): Promise<StandardsLock> {
   }
   const files: Record<string, string> = {};
   for (const [filePath, digest] of Object.entries(value.files)) {
+    validateRelativePath(filePath, "CLI 内置规范锁文件路径");
     if (typeof digest !== "string" || !/^[a-f0-9]{64}$/.test(digest)) {
       throw new ConfigError(`CLI 内置规范锁文件包含无效摘要: ${filePath}`);
     }
@@ -78,6 +94,9 @@ async function bundledSource(root: string): Promise<StandardsSource> {
   return {
     root,
     revision: lock.revision,
+    async assertMarkdownPathsMatch(requestedPath, actualPaths) {
+      assertMarkdownPathsMatch(Object.keys(lock.files).filter((file) => file.toLowerCase().endsWith(".md")), requestedPath, actualPaths);
+    },
     async assertFileMatches(relativePath, content) {
       const expected = lock.files[relativePath];
       if (expected === undefined || sha256(content) !== expected) {

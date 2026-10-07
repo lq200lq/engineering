@@ -41,6 +41,8 @@ npx --yes --package=engineering-harness -- eng validate
 
 `resolve` 首次运行会创建 `.ai/manifest.yaml`、`.ai/resolved/`，并在项目根目录的 `AGENTS.md` 中添加 Engineering Harness 管理区块。[Codex 会自动读取仓库中的 `AGENTS.md`](https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide)；该区块包含项目 Profile 摘要和规则文件清单，并要求 Codex 在修改前读取这些文件。若已有 `AGENTS.md`，CLI 只替换自身标记区块并保留其他内容；遇到符号链接或损坏的管理标记时会报错，不会覆盖文件。完成一轮实现或更新 Profile 后再次运行 `validate`，检查规则快照、管理区块和 Registry 声明的确定性项目条件。
 
+`resolve` 在同一项目内使用 `.eng-resolve.lock/` 互斥锁，避免多个命令同时发布。正常完成或失败都会释放锁；进程被强制终止时可能留下锁，可查看其中的 `owner.json`，确认没有运行中的 resolve 进程后再删除锁目录。发布前会检查 `AGENTS.md` 是否在准备后发生变化，发现变化则保留人工修改并中止；入口发布失败会恢复原有 Manifest 和规则目录。目录规则还会核对锁定 revision 或包内锁文件中的 Markdown 文件集合，缺失或新增文件均会报错。
+
 也可以把 CLI 安装到项目中：
 
 ```sh

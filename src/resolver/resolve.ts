@@ -21,7 +21,9 @@ export async function resolveRules(
   for (const [index, { id, rule }] of matched.entries()) {
     const ruleFiles = new Map<string, { absolutePath: string; relativePath: string }>();
     for (const requestedPath of toRegistryPaths(rule.path)) {
-      for (const source of await collectMarkdownFiles(standards.root, requestedPath)) {
+      const sources = await collectMarkdownFiles(standards.root, requestedPath);
+      await standards.assertMarkdownPathsMatch(requestedPath, sources.map((source) => source.relativePath));
+      for (const source of sources) {
         ruleFiles.set(source.relativePath, source);
       }
     }

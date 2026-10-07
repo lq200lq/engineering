@@ -4,6 +4,18 @@ import { ConfigError } from "../config/load.js";
 
 const execFile = promisify(execFileCallback);
 
+export async function getGitMarkdownPaths(standardsRoot: string, revision: string): Promise<string[]> {
+  try {
+    const { stdout } = await execFile("git", ["-C", standardsRoot, "ls-tree", "-r", "--name-only", "-z", revision], {
+      encoding: "utf8", maxBuffer: 16 * 1024 * 1024,
+    });
+    return stdout.split("\0").filter((file) => file.toLowerCase().endsWith(".md"));
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new ConfigError(`无法读取 Standards ${revision} 的文件清单: ${detail}`);
+  }
+}
+
 export async function getGitHead(standardsRoot: string): Promise<string> {
   try {
     const { stdout } = await execFile("git", ["-C", standardsRoot, "rev-parse", "--verify", "HEAD"]);

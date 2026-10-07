@@ -10,7 +10,8 @@
 
 - 使用 Node.js `>=22.17.0`。运行 `npm install` 安装依赖，`npm run build` 用 TypeScript 编译到 `dist/`。
 - 初始化或同步规范子仓库：`git submodule update --init --recursive`。
-- 当前未配置测试框架、测试目录或测试脚本；不要假设 `npm test` 可用。改动完成后至少运行构建，并在 PR 中如实记录结果。
+- `npm test` 会先构建，再使用 Node.js 内置测试运行器执行 `test/*.test.js`。改动完成后运行相关回归测试；提交前运行完整测试，并在 PR 中如实记录结果。
+- `npm run package:check` 会构建、准备内置规范快照并检查 npm 发布清单；发布相关改动必须运行此检查。
 
 ## 编码风格
 
@@ -19,7 +20,7 @@
 
 ## 测试指南
 
-- 暂无自动化测试约定。新功能应覆盖正常输入、无效配置和关键边界行为；如新增测试框架或脚本，请同时更新本指南与 `package.json`。
+- 自动化测试放在 `test/`，使用 Node.js 内置 `node:test` 和 `node:assert/strict`，导入构建后的 `dist/` 模块。新功能应覆盖正常输入、无效配置和关键边界行为；文件与 Git 场景使用临时目录，并在测试结束后清理。
 
 ## 提交与 Pull Request
 

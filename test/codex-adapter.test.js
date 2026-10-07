@@ -153,3 +153,57 @@ test("CLI resolve rejects a symlinked AGENTS.md before publishing generated rule
   await assert.rejects(readFile(path.join(root, ".ai", "manifest.yaml")), { code: "ENOENT" });
   assert.equal(await readFile(outsideFile, "utf8"), "External instructions.\n");
 });
+
+for (const initial of [undefined, "", "Original guidance\n"]) {
+  test(`prepared instructions preserve concurrent changes (initial=${JSON.stringify(initial)})`, async (t) => {
+    const { prepareCodexInstructions } = await import("../dist/io/codex-adapter.js");
+    const root = await mkdtemp(path.join(os.tmpdir(), "eng-agents-edit-"));
+    t.after(() => rm(root, { recursive: true, force: true }));
+    const target = path.join(root, "AGENTS.md");
+    if (initial !== undefined) await writeFile(target, initial);
+    const prepared = await prepareCodexInstructions(root, path.join(root, ".ai"), profile, files);
+    t.after(() => prepared.cleanup());
+    await writeFile(target, "New human instructions\n");
+    await assert.rejects(prepared.publish(), /准备后发生变化/);
+    assert.equal(await readFile(target, "utf8"), "New human instructions\n");
+  });
+}
+
+test("prepared instructions refuse a symlink introduced before publication", async (t) => {
+  const { prepareCodexInstructions } = await import("../dist/io/codex-adapter.js");
+  const root = await mkdtemp(path.join(os.tmpdir(), "eng-agents-edit-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const prepared = await prepareCodexInstructions(root, path.join(root, ".ai"), profile, files);
+  t.after(() => prepared.cleanup());
+  await writeFile(path.join(root, "external.md"), "Keep me\n");
+  await symlink(path.join(root, "external.md"), path.join(root, "AGENTS.md"));
+  await assert.rejects(prepared.publish(), /符号链接/);
+  assert.equal(await readFile(path.join(root, "external.md"), "utf8"), "Keep me\n");
+});
+
+test("CLI resolve refuses an occupied project lock and succeeds after release", async (t) => {
+  const { mkdir, readdir } = await import("node:fs/promises");
+  const root = await mkdtemp(path.join(os.tmpdir(), "eng-resolve-lock-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(path.join(root, "engineering.yaml"), "project: { name: sample, type: service }\n");
+  const lock = path.join(root, ".eng-resolve.lock");
+  await mkdir(lock);
+  const blocked = spawnSync(process.execPath, [cli, "resolve", "--standards", standards], { cwd: root, encoding: "utf8" });
+  assert.equal(blocked.status, 2);
+  assert.match(blocked.stderr, /另一个 eng resolve/);
+  await assert.rejects(readFile(path.join(root, ".ai/manifest.yaml")), { code: "ENOENT" });
+  await rm(lock, { recursive: true });
+  const success = spawnSync(process.execPath, [cli, "resolve", "--standards", standards], { cwd: root, encoding: "utf8" });
+  assert.equal(success.status, 0, success.stderr);
+  assert.equal((await readdir(root)).includes(".eng-resolve.lock"), false);
+});
+
+test("CLI resolve releases its lock after an invalid profile", async (t) => {
+  const { readdir } = await import("node:fs/promises");
+  const root = await mkdtemp(path.join(os.tmpdir(), "eng-resolve-lock-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(path.join(root, "engineering.yaml"), "unexpected: true\n");
+  const failed = spawnSync(process.execPath, [cli, "resolve", "--standards", standards], { cwd: root, encoding: "utf8" });
+  assert.equal(failed.status, 2);
+  assert.equal((await readdir(root)).includes(".eng-resolve.lock"), false);
+});

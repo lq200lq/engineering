@@ -5,6 +5,7 @@ import { ConfigError, parseManifest } from "../config/load.js";
 import type { Manifest, ResolvedRuleFile } from "../config/types.js";
 import { validateRelativePath } from "./paths.js";
 import { hashTree, sha256 } from "../manifest/hash.js";
+import type { PreparedCodexInstructions } from "./codex-adapter.js";
 
 async function exists(target: string): Promise<boolean> {
   try {
@@ -20,6 +21,7 @@ export async function writeResolvedGeneration(
   outputRoot: string,
   files: ResolvedRuleFile[],
   manifest: Manifest,
+  codexInstructions?: PreparedCodexInstructions,
 ): Promise<void> {
   parseManifest(manifest);
   const treeEntries = files.map((file) => ({ path: file.destinationPath, content: file.content }));
@@ -92,6 +94,8 @@ export async function writeResolvedGeneration(
     installedResolved = true;
     await rename(stagedManifest, targetManifest);
     installedManifest = true;
+    // 指令入口发布成功后，才允许清理生成物备份。
+    await codexInstructions?.publish();
   } catch (error) {
     try {
       if (installedManifest) await rm(targetManifest, { force: true });

@@ -104,8 +104,14 @@ export async function prepareCodexInstructions(
   const outputRootRelative = path.relative(projectRoot, path.resolve(outputRoot)).split(path.sep).join("/") || ".";
   const managedSection = buildCodexManagedSection(profile, files, outputRootRelative);
   const updated = mergeCodexManagedSection(existing.content, managedSection);
+  const assertUnchanged = async (): Promise<void> => {
+    const current = await readExistingInstructions(target);
+    if (current.content !== existing.content || current.mode !== existing.mode) {
+      throw new ConfigError("AGENTS.md 在准备后发生变化，已中止发布以保留人工修改；请重新运行 eng resolve");
+    }
+  };
   if (updated === existing.content) {
-    return { async publish() {}, async cleanup() {} };
+    return { publish: assertUnchanged, async cleanup() {} };
   }
 
   const stage = await mkdtemp(path.join(projectRoot, ".eng-agents-stage-"));
@@ -117,6 +123,7 @@ export async function prepareCodexInstructions(
     return {
       async publish() {
         if (published) return;
+        await assertUnchanged();
         await rename(stagedFile, target);
         published = true;
       },

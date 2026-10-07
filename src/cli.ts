@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { lstat, readFile, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { parseArgs } from "node:util";
@@ -232,6 +232,25 @@ async function initCommand(options: CommandOptions): Promise<void> {
 
 async function resolveCommand(options: CommandOptions): Promise<void> {
   if (options.help) throw new ConfigError("resolve 命令参数不完整");
+  const lock = path.join(process.cwd(), ".eng-resolve.lock");
+  try {
+    await mkdir(lock);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+      throw new ConfigError(`另一个 eng resolve 正在运行或留下了锁: ${lock}；确认没有运行中的进程后再删除此锁目录`);
+    }
+    throw error;
+  }
+  try {
+    await writeFile(path.join(lock, "owner.json"), JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() }), { flag: "wx" });
+    await resolveUnlocked(options);
+  } finally {
+    await rm(lock, { recursive: true, force: true });
+  }
+}
+
+async function resolveUnlocked(options: CommandOptions): Promise<void> {
+  if (options.help) throw new ConfigError("resolve 命令参数不完整");
   const standards = await resolveStandardsSource(process.cwd(), options.standards);
   const standardsRoot = standards.root;
   const profilePath = path.resolve(options.profile ?? "./engineering.yaml");
@@ -270,8 +289,7 @@ async function resolveCommand(options: CommandOptions): Promise<void> {
   const manifest = await createManifest({ registry, revision, profileContent, registryContent, resolvedFiles });
   const codexInstructions = await prepareCodexInstructions(process.cwd(), outputRoot, profile, resolvedFiles);
   try {
-    await writeResolvedGeneration(outputRoot, resolvedFiles, manifest);
-    await codexInstructions.publish();
+    await writeResolvedGeneration(outputRoot, resolvedFiles, manifest, codexInstructions);
   } finally {
     await codexInstructions.cleanup();
   }
