@@ -12,6 +12,7 @@
   },
   "files": [
     "dist/**",
+    "assets/**",
     "README.md",
     "CONTRIBUTING.md",
     "SECURITY.md",

@@ -1,5 +1,7 @@
 # Engineering Harness
 
+<p align="center"><img src="assets/engineering-harness-banner.png" alt="Engineering Harness：从工程规则注册表生成并校验项目规范快照" width="100%"></p>
+
 [![CI](https://github.com/lq200lq/engineering/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/lq200lq/engineering/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/engineering-harness)](https://www.npmjs.com/package/engineering-harness)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
