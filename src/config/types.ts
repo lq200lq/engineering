@@ -14,11 +14,18 @@ export interface ProjectProfile {
     cache?: boolean;
     mq?: boolean;
     fileStorage?: boolean;
+    apiDocumentation?: boolean;
+    authorization?: boolean;
   };
   stack?: {
     backend?: { language?: string; framework?: string };
-    frontend?: { framework?: string };
-    database?: { type?: string };
+    frontend?: {
+      framework?: string;
+      uiLibrary?: string;
+      adminScaffold?: string;
+      cssFramework?: string;
+    };
+    database?: { type?: string; migrationTool?: string };
   };
   deployment?: { type?: string; internetAccess?: boolean };
   preferences?: { architecture?: string; simplicity?: string };

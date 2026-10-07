@@ -230,18 +230,26 @@ engineering-standards/
 │   ├── mq.md
 │   ├── ai.md
 │   ├── file-storage.md
-│   └── offline-deployment.md
+│   ├── offline-deployment.md
+│   ├── api-documentation.md
+│   └── authorization.md
 │
 ├── stacks/
-│   ├── java/
-│   ├── node/
-│   ├── python/
-│   ├── vue/
-│   ├── react/
-│   ├── nextjs/
-│   ├── postgresql/
-│   ├── mysql/
-│   └── redis/
+│   ├── java.md
+│   ├── java-version.md
+│   ├── lombok.md
+│   ├── spring-boot-monolith.md
+│   ├── spring-cloud.md
+│   ├── nodejs.md
+│   ├── vue.md
+│   ├── nextjs.md
+│   ├── ant-design.md
+│   ├── ant-design-vue.md
+│   ├── ant-design-pro.md
+│   ├── vben-admin.md
+│   ├── tailwindcss.md
+│   ├── postgresql.md
+│   └── flyway.md
 │
 ├── decisions/
 │   ├── architecture.md
@@ -394,21 +402,24 @@ capabilities/database.md
 例如：
 
 ```text
-stacks/java/
-stacks/vue/
-stacks/postgresql/
+stacks/java.md
+stacks/java-version.md
+stacks/spring-boot-monolith.md
+stacks/spring-cloud.md
+stacks/nodejs.md
+stacks/vue.md
+stacks/nextjs.md
+stacks/flyway.md
+capabilities/api-documentation.md
+capabilities/authorization.md
 ```
 
-Java 项目可包含：
+Registry 可按 Profile 的精确字段匹配装配框架、UI 库、管理后台脚手架、CSS 框架和数据库迁移工具规则；API 文档与授权等横向能力由 `capabilities.*` 选择。未声明的技术不会加载对应规则。
+
+Java 项目的规则可按语言及框架拆分。框架字段使用一个精确值，例如 `spring-boot-monolith` 或 `spring-cloud`：
 
 ```text
-stacks/java/
-├── language.md
-├── project-structure.md
-├── dependency.md
-├── testing.md
-├── concurrency.md
-└── style.md
+stack.backend.language: java
 ```
 
 PostgreSQL：
@@ -533,17 +544,23 @@ capabilities:
   cache: false
   mq: false
   fileStorage: false
+  apiDocumentation: true
+  authorization: true
 
 stack:
   backend:
     language: java
-    framework: spring-boot
+    framework: spring-boot-monolith
 
   frontend:
     framework: vue
+    uiLibrary: ant-design-vue
+    adminScaffold: vben-admin
+    cssFramework: tailwindcss
 
   database:
     type: postgresql
+    migrationTool: flyway
 
 deployment:
   type: private

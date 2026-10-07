@@ -37,7 +37,14 @@
           "type": "object",
           "minProperties": 1,
           "propertyNames": { "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$" },
-          "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
+          "additionalProperties": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" },
+              { "type": "null" }
+            ]
+          }
         },
         "path": {
           "oneOf": [
@@ -50,8 +57,16 @@
         "checks": { "type": "array", "items": { "$ref": "#/definitions/check" } }
       },
       "oneOf": [
-        { "required": ["always"], "not": { "required": ["when"] } },
-        { "required": ["when"], "not": { "required": ["always"] } }
+        {
+          "required": ["always"],
+          "properties": { "always": { "const": true } },
+          "not": { "properties": { "when": {} }, "required": ["when"] }
+        },
+        {
+          "required": ["when"],
+          "properties": { "when": { "type": "object" } },
+          "not": { "properties": { "always": {} }, "required": ["always"] }
+        }
       ]
     },
     "level": { "enum": ["mandatory", "recommended", "guideline"] },
