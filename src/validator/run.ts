@@ -1,8 +1,9 @@
 import { lstat, readFile, readdir, realpath } from "node:fs/promises";
 import path from "node:path";
 import { ConfigError, parseManifest, parseProfile, parseRegistry, readYamlFile } from "../config/load.js";
-import type { Manifest, ProjectProfile, Registry } from "../config/types.js";
+import type { Manifest, ProjectProfile, Registry, ResolvedRuleFile } from "../config/types.js";
 import { resolveRegularFileInside } from "../io/paths.js";
+import { validateCodexInstructions } from "../io/codex-adapter.js";
 import type { StandardsSource } from "../io/standards.js";
 import { createManifest } from "../manifest/manifest.js";
 import { hashTree, sha256 } from "../manifest/hash.js";
@@ -118,7 +119,7 @@ export async function validateGeneratedState(
   profile: ProjectProfile,
   registry: Registry,
   outputRoot: string,
-): Promise<void> {
+): Promise<ResolvedRuleFile[]> {
   let outputStat;
   try {
     outputStat = await lstat(outputRoot);
@@ -154,6 +155,7 @@ export async function validateGeneratedState(
       throw new ConfigError(`规则文件摘要错误: ${file.sourcePath}`);
     }
   }
+  return resolvedFiles;
 }
 
 export async function validateProject(
@@ -174,6 +176,7 @@ export async function validateProject(
   });
   const registry = parseRegistry(await readYamlFile(registryPath));
   await standards.assertFileMatches("registry.yaml", registryContent);
-  await validateGeneratedState(standards, profileContent, registryContent, profile, registry, outputRoot);
+  const resolvedFiles = await validateGeneratedState(standards, profileContent, registryContent, profile, registry, outputRoot);
+  await validateCodexInstructions(projectRoot, outputRoot, profile, resolvedFiles);
   return runChecks(projectRoot, registry, profile);
 }

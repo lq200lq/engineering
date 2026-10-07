@@ -7,14 +7,17 @@ import { stringify } from "yaml";
 import { ConfigError, parseManifest, parseProfile, parseRegistry, readYamlFile } from "./config/load.js";
 import type { Manifest } from "./config/types.js";
 import { resolveRegularFileInside } from "./io/paths.js";
+import { prepareCodexInstructions } from "./io/codex-adapter.js";
 import { resolveStandardsSource } from "./io/standards.js";
 import { createManifest } from "./manifest/manifest.js";
 import { resolveRules } from "./resolver/resolve.js";
+import { findUnsupportedStackValues } from "./resolver/diagnostics.js";
 import { writeResolvedGeneration } from "./io/publish.js";
 import { exitCodeFor } from "./validator/checks.js";
 import { validateProject } from "./validator/run.js";
+import { formatValidationSummary } from "./validator/summary.js";
 
-const usage = `Engineering Harness\n\n用法:\n  eng <命令> [选项]\n\n命令:\n  init       交互式配置并创建项目 Profile\n  resolve    解析并生成项目规则\n  validate   校验已生成规则和项目约束\n\n选项:\n  --standards <path>  Standards Git 仓库路径（默认优先 ./standards，否则用 CLI 内置规范）\n  --profile <path>    项目 Profile（默认 ./engineering.yaml）\n  --output <path>     输出目录（默认 ./.ai）\n  --upgrade <sha>     显式锁定规范版本的完整 revision\n  --help              显示帮助`;
+const usage = `Engineering Harness\n\n用法:\n  eng <命令> [选项]\n\n命令:\n  init       交互式配置并创建项目 Profile\n  resolve    解析规则并更新 Codex 的 AGENTS.md 入口\n  validate   检查规则快照与已声明的确定性条件\n\n选项:\n  --standards <path>  Standards Git 仓库路径（默认优先 ./standards，否则用 CLI 内置规范）\n  --profile <path>    项目 Profile（默认 ./engineering.yaml）\n  --output <path>     输出目录（默认 ./.ai）\n  --upgrade <sha>     显式锁定规范版本的完整 revision\n  --help              显示帮助`;
 
 const commandOptions = {
   standards: { type: "string" },
@@ -265,8 +268,18 @@ async function resolveCommand(options: CommandOptions): Promise<void> {
 
   const resolvedFiles = await resolveRules(profile, registry, standards);
   const manifest = await createManifest({ registry, revision, profileContent, registryContent, resolvedFiles });
-  await writeResolvedGeneration(outputRoot, resolvedFiles, manifest);
+  const codexInstructions = await prepareCodexInstructions(process.cwd(), outputRoot, profile, resolvedFiles);
+  try {
+    await writeResolvedGeneration(outputRoot, resolvedFiles, manifest);
+    await codexInstructions.publish();
+  } finally {
+    await codexInstructions.cleanup();
+  }
   process.stdout.write(`已生成 ${resolvedFiles.length} 条规则文件，revision ${revision}\n`);
+  process.stdout.write("已更新 AGENTS.md 中由 Engineering Harness 管理的区块（Codex 会读取）。\n");
+  for (const warning of findUnsupportedStackValues(profile, registry)) {
+    process.stdout.write(`WARN [profile] Profile 的 ${warning.path}="${warning.value}" 没有对应的 Registry 规则；该技术栈不会加载专项规则\n`);
+  }
 }
 
 async function validateCommand(options: CommandOptions): Promise<void> {
@@ -276,6 +289,9 @@ async function validateCommand(options: CommandOptions): Promise<void> {
   const profilePath = path.resolve(options.profile ?? "./engineering.yaml");
   const outputRoot = path.resolve(options.output ?? "./.ai");
   const report = await validateProject(projectRoot, standards, profilePath, outputRoot);
+  for (const warning of report.profileWarnings ?? []) {
+    process.stdout.write(`WARN [profile] ${warning}\n`);
+  }
   for (const result of report.results) {
     const marker =
       result.status === "unknown"
@@ -292,7 +308,8 @@ async function validateCommand(options: CommandOptions): Promise<void> {
     );
   }
   const exitCode = exitCodeFor(report);
-  process.stdout.write(`校验完成，退出码 ${exitCode}\n`);
+  process.stdout.write(`${formatValidationSummary(report)}\n`);
+  process.stdout.write(`命令退出码：${exitCode}\n`);
   process.exitCode = exitCode;
 }
 

@@ -4,6 +4,7 @@ import path from "node:path";
 import { ConfigError } from "../config/load.js";
 import type { CheckSpec, ProjectProfile, Registry } from "../config/types.js";
 import { matchRules } from "../resolver/match.js";
+import { findUnsupportedStackValues } from "../resolver/diagnostics.js";
 import type { ValidationReport, ValidationResult } from "./types.js";
 
 interface PackageDependencies {
@@ -175,7 +176,10 @@ export async function runChecks(
         ? -1
         : 1,
   );
-  return { results: indexedResults.map(({ result }) => result) };
+  const profileWarnings = findUnsupportedStackValues(profile, registry).map(
+    ({ path, value }) => `Profile 的 ${path}="${value}" 没有对应的 Registry 规则；该技术栈不会加载专项规则`,
+  );
+  return { results: indexedResults.map(({ result }) => result), profileWarnings };
 }
 
 export function exitCodeFor(report: ValidationReport): 0 | 1 | 3 {

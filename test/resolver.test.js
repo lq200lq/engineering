@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { parseProfile, parseRegistry, ConfigError } from "../dist/config/load.js";
 import { matchRules } from "../dist/resolver/match.js";
+import { findUnsupportedStackValues } from "../dist/resolver/diagnostics.js";
 import { resolveRules } from "../dist/resolver/resolve.js";
 import { profile, registry, rule } from "./helpers.js";
 
@@ -35,6 +36,21 @@ test("matchRules rejects supersedes cycles", () => {
     beta: rule("beta", { supersedes: ["alpha"] }),
   });
   assert.throws(() => matchRules(profile(), input), /循环/);
+});
+
+test("findUnsupportedStackValues reports stack values without registered rules", () => {
+  const inputProfile = profile({
+    capabilities: { frontend: true },
+    stack: { frontend: { framework: "react", cssFramework: "tailwindcss" } },
+  });
+  const inputRegistry = registry({
+    vue: rule("vue", { when: { "stack.frontend.framework": "vue" } }),
+    tailwind: rule("tailwind", { when: { "stack.frontend.cssFramework": "tailwindcss" } }),
+  });
+
+  assert.deepEqual(findUnsupportedStackValues(inputProfile, inputRegistry), [
+    { path: "stack.frontend.framework", value: "react" },
+  ]);
 });
 
 test("parseRegistry rejects references to missing rules", () => {

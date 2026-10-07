@@ -15,4 +15,5 @@ export interface ValidationResult {
 
 export interface ValidationReport {
   results: ValidationResult[];
+  profileWarnings?: string[];
 }

@@ -37,7 +37,7 @@ npx --yes --package=engineering-harness -- eng resolve
 npx --yes --package=engineering-harness -- eng validate
 ```
 
-`resolve` 首次运行会创建 `.ai/manifest.yaml` 和 `.ai/resolved/`。完成一轮实现或更新 Profile 后再次运行 `validate`，检查配置、规则快照、生成文件和可自动判定的项目条件。
+`resolve` 首次运行会创建 `.ai/manifest.yaml`、`.ai/resolved/`，并在项目根目录的 `AGENTS.md` 中添加 Engineering Harness 管理区块。[Codex 会自动读取仓库中的 `AGENTS.md`](https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide)；该区块包含项目 Profile 摘要和规则文件清单，并要求 Codex 在修改前读取这些文件。若已有 `AGENTS.md`，CLI 只替换自身标记区块并保留其他内容；遇到符号链接或损坏的管理标记时会报错，不会覆盖文件。完成一轮实现或更新 Profile 后再次运行 `validate`，检查规则快照、管理区块和 Registry 声明的确定性项目条件。
 
 也可以把 CLI 安装到项目中：
 
@@ -68,7 +68,7 @@ CLI 内置快照让一般使用者不需要维护第二个仓库。参与规范�
 | 命令 | 用途 |
 | --- | --- |
 | `eng init` | 交互式创建 `engineering.yaml`；支持 `--profile <path>` 指定路径 |
-| `eng resolve` | 根据 Profile 解析规则并写入 Manifest 与规则文件 |
+| `eng resolve` | 根据 Profile 解析规则、更新 Manifest、规则文件和 Codex 的 `AGENTS.md` 管理区块 |
 | `eng resolve --upgrade <SHA>` | 显式锁定新的 Standards commit revision |
 | `eng validate` | 校验配置、锁定、生成文件和确定性检查结果 |
 
@@ -92,9 +92,9 @@ CLI 内置快照让一般使用者不需要维护第二个仓库。参与规范�
 
 ## 检查范围
 
-当前 Validator 能确定地检查项目相对路径下的 `file_exists`、`migration_exists`，以及 Node.js `package.json` 中依赖是否存在或不应存在。依赖检查读取 `dependencies`、`devDependencies` 和 `optionalDependencies`，不比较版本。
+当前 Validator 能确定地检查项目相对路径下的 `file_exists`、`migration_exists`，以及 Node.js `package.json` 中依赖是否存在或不应存在。依赖检查读取 `dependencies`、`devDependencies` 和 `optionalDependencies`，不比较版本。Profile 中未在 Registry 注册的技术栈值会显示警告，但不阻断生成或改变退出码。
 
-Markdown 规则用于指导工程实践；Validator 不判断自然语言规范是否已遵守，也不自动扫描和推断非 Node.js 的依赖清单。检查级别和边界由 Registry 明确声明，recommended 与 guideline 结果不会改变退出码。
+`validate` 还会核对 `AGENTS.md` 中的受管区块是否与当前 Profile 和生成规则一致。它报告规则快照状态及 Registry 检查结果，不判断 Markdown 自然语言规范是否已遵守，也不自动扫描和推断非 Node.js 的依赖清单；退出码为 `0` 不等同于代码质量通过。检查级别和边界由 Registry 明确声明，recommended 与 guideline 结果不会改变退出码。
 
 ## 规范仓库结构
 
