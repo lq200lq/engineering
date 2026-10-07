@@ -68,12 +68,12 @@
 - Produces: `parseManifest(value: unknown): Manifest`
 - Produces: `CheckSpec` union for the four check types in the spec.
 
-- [ ] Set package `type` to `module`, `engines.node` to `>=22.17.0`, `bin.eng` to `dist/cli.js`, and a `build` script using `tsc`. Install `yaml`, `ajv`, and `ajv-formats` as runtime dependencies and TypeScript plus `@types/node` as development dependencies; pin resolved versions in `package-lock.json`.
-- [ ] Configure TypeScript for strict checking, Node ESM resolution, `src` input and `dist` output; use `node:util` `parseArgs` for CLI parsing.
-- [ ] Define JSON Schemas with `additionalProperties: false` at every object level. Profile contains only the documented `project`, `capabilities`, `stack`, `deployment`, and `preferences` fields. Registry requires `standards.id`, semver `standards.version`, and `rules` keyed by rule ID; each rule requires matching `id`, integer `priority`, `path`, and exactly one of `always: true` or non-empty `when`. Manifest requires `formatVersion: 1`, source/version, a 40- or 64-character lowercase hexadecimal revision, semver resolver version, ISO timestamp, input hashes, generated hash, and ordered rule records. Define all checker parameters and reject unsupported checker types.
-- [ ] Implement single-document YAML loading with `parseDocument`; report syntax and Schema errors with the source filename and location, then return typed values only after validation.
-- [ ] Add top-level and subcommand `--help`; use `parseArgs({ tokens: true })` to reject missing, repeated, or unknown options with usage output and exit code 2.
-- [ ] Run `npm run build` and `git diff --check`; commit as `建立 TypeScript CLI 与配置 Schema`.
+- [x] Set package `type` to `module`, `engines.node` to `>=22.17.0`, `bin.eng` to `dist/cli.js`, and a `build` script using `tsc`. Install `yaml`, `ajv`, and `ajv-formats` as runtime dependencies and TypeScript plus `@types/node` as development dependencies; pin resolved versions in `package-lock.json`.
+- [x] Configure TypeScript for strict checking, Node ESM resolution, `src` input and `dist` output; use `node:util` `parseArgs` for CLI parsing.
+- [x] Define JSON Schemas with `additionalProperties: false` at every object level. Profile contains only the documented `project`, `capabilities`, `stack`, `deployment`, and `preferences` fields. Registry requires `standards.id`, semver `standards.version`, and `rules` keyed by rule ID; each rule requires matching `id`, integer `priority`, `path`, and exactly one of `always: true` or non-empty `when`. Manifest requires `formatVersion: 1`, source/version, a 40- or 64-character lowercase hexadecimal revision, semver resolver version, ISO timestamp, input hashes, generated hash, and ordered rule records. Define all checker parameters and reject unsupported checker types.
+- [x] Implement single-document YAML loading with `parseDocument`; report syntax and Schema errors with the source filename and location, then return typed values only after validation.
+- [x] Add top-level and subcommand `--help`; use `parseArgs({ tokens: true })` to reject missing, repeated, or unknown options with usage output and exit code 2.
+- [x] Run `npm run build` and `git diff --check`; commit as `建立 TypeScript CLI 与配置 Schema`.
 
 ### Task 2: Resolver 与 Manifest
 
@@ -96,7 +96,7 @@
 - [x] Compute SHA-256 for Profile, Registry, each selected Markdown file and the normalized resolved tree; exclude audit timestamps from the tree digest.
 - [x] Compare `registry.yaml` and each selected rule file with their blobs at the locked HEAD; reject dirty or untracked standards inputs so the recorded revision actually identifies the hashed standards content.
 - [x] On first resolve, lock the local HEAD. On later resolve, reject a changed HEAD unless `--upgrade <revision>` was explicitly provided. Write the full generation into a temporary sibling directory; publish only `.ai/resolved/` and `.ai/manifest.yaml`, preserving other `.ai` content. If publication fails, restore the prior versions of both generated targets and remove the temporary output.
-- [ ] Run `npm run build` and `git diff --check`; commit as `实现确定性规则解析与 Manifest`.
+- [x] Run `npm run build` and `git diff --check`; commit as `实现确定性规则解析与 Manifest`.
 
 ### Task 3: Deterministic Validator
 
@@ -114,7 +114,7 @@
 - [x] Run checks only for matched rules. Emit stable result records with rule ID, level, check type, path, actual, expected, and reason; sort by rule ID then check index.
 - [x] Return exit code 1 for mandatory failures, 3 for any unknown result, and 0 otherwise. Keep configuration and Resolver failures at 2; recommended findings remain warnings and do not alter the exit code. Print results in stable order with a final exit-code summary.
 - [x] Validate Manifest revision, Profile/Registry hashes, rule hashes, and resolved-tree digest before checks; stale or inconsistent generated state returns 2.
-- [ ] Run `npm run build` and `git diff --check`; commit as `实现确定性工程规则校验`.
+- [x] Run `npm run build` and `git diff --check`; commit as `实现确定性工程规则校验`.
 
 ### Task 4: Usage and Release Notes
 
@@ -128,4 +128,4 @@
 
 - [x] Document only commands implemented by the package; distinguish local checkout resolution from deferred remote `sync`.
 - [x] Check examples against the approved specification and avoid claiming unsupported ecosystems or checkers.
-- [ ] Run `npm run build` and `git diff --check`; commit as `补充 CLI 使用说明`.
+- [x] Run `npm run build` and `git diff --check`; commit as `补充 CLI 使用说明`.
