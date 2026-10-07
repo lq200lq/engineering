@@ -563,6 +563,15 @@ preferences:
 
 Resolver 根据 `engineering.yaml` 自动计算当前项目应该加载哪些规则。
 
+#### MVP 解析契约
+
+- 先按版本化 Schema 校验 `engineering.yaml` 与 `registry.yaml`；未知字段、未知规则类型、缺失必填字段或无法识别的条件均报错，不静默忽略。
+- v1 条件只支持 `always: true` 或点分路径字段的精确值匹配，两者不能同时设置；同一条规则的多个字段条件按 AND 处理。Profile 中缺失字段视为未匹配，字段类型不一致视为配置错误。暂不支持表达式、通配符和脚本条件。
+- 所有规则路径必须是 Standards Repository 内的相对路径。目录按路径字典序递归展开，只纳入注册支持的 Markdown 规则文件；拒绝绝对路径、`..` 越界和逃逸仓库的符号链接。
+- 输出顺序固定为规则优先级升序、规则 ID 字典序、文件相对路径字典序。相同输入 revision、Profile 和 Registry 必须产生相同文件列表与内容摘要。
+- 自动解析不尝试理解自然语言并推断规则优先级。规则间的明确冲突必须在 Registry 中声明；不能静默采用“后加载覆盖先加载”。
+- 解析失败时不覆盖现有 `.ai/resolved/` 或 Manifest；先在临时目录组装并校验完整生成物，再发布新版本。发布失败时保留旧文件并清理临时目录。
+
 例如：
 
 ```yaml
@@ -628,34 +637,46 @@ registry.yaml
 
 进行规则注册。
 
+MVP Registry 为每条规则提供稳定的 `id`、`priority`、匹配条件、文件路径及可选的 `conflicts` / `supersedes` 声明。重复 ID 和已声明的冲突必须被机器检查。若规则 A 的 `supersedes` 包含规则 B，且二者都匹配，则结果中只保留 A；覆盖关系必须无环。`priority` 只用于最终排序，不隐式覆盖其他规则。通过 `conflicts` 声明为不可同时启用的规则共同匹配时解析失败。没有声明关系的规则都保留在结果中。自然语言语义冲突不由 Resolver 自动推断，需在规范仓库审查中处理。Registry 随 Standards Repository 版本锁定。
+
 示例：
 
 ```yaml
 rules:
 
   constitution:
+    id: constitution
+    priority: 0
     always: true
     path: constitution
 
   backend:
+    id: backend
+    priority: 10
     when:
       capabilities.backend: true
     path:
       - capabilities/backend.md
 
   java:
+    id: java
+    priority: 20
     when:
       stack.backend.language: java
     path:
       - stacks/java
 
   postgresql:
+    id: postgresql
+    priority: 20
     when:
       stack.database.type: postgresql
     path:
       - stacks/postgresql
 
   offline:
+    id: offline
+    priority: 10
     when:
       deployment.internetAccess: false
     path:
@@ -763,9 +784,15 @@ eng resolve
 eng sync
 ```
 
-同步最新的 Standards Repository。
+同步项目 Manifest 锁定的 Standards Repository 版本，并使用锁定版本重新解析规则。`eng sync` 默认不升级版本。
 
-例如：
+```bash
+eng sync --upgrade <version>
+```
+
+显式升级成功后才更新 Manifest 的版本、revision 和规则摘要。下载、校验或解析失败时必须保留原 Manifest 与已生成文件。Manifest 必须记录 Git commit SHA 作为锁定 revision；升级参数可使用版本号或标签，但必须先解析到 commit SHA，不能锁定浮动的 `latest` 或可移动标签。本地已有锁定 revision 缓存时，离线可以继续同步；否则失败并说明缺少该版本。`eng sync --upgrade` 不带版本参数时直接报配置错误。
+
+例如，升级过程为：
 
 ```text
 v1.8.0
@@ -773,7 +800,7 @@ v1.8.0
 v1.9.0
 ```
 
-然后重新解析规则。
+然后重新解析规则。普通 `eng sync` 始终遵循当前锁定版本，不自动追随最新版本。
 
 ---
 
@@ -918,19 +945,31 @@ Before implementation:
 例如：
 
 ```yaml
+formatVersion: 1
+
 standards:
   source: engineering-standards
   version: 1.3.0
+  revision: 0123456789abcdef0123456789abcdef01234567
+  resolverVersion: 1.0.0
   resolvedAt: 2026-10-07
+inputs:
+  profileSha256: <sha256>
+  registrySha256: <sha256>
+generatedSha256: <sha256>
 
 rules:
-  - constitution/principles
-  - constitution/architecture
-  - capabilities/backend
-  - capabilities/database
-  - stacks/java
-  - stacks/postgresql
+  - id: constitution-principles
+    path: constitution/principles.md
+    sha256: <sha256>
+  - id: capabilities-backend
+    path: capabilities/backend.md
+    sha256: <sha256>
 ```
+
+`source` 标识规范源，`revision` 是唯一确定仓库内容的 Git commit SHA，`version` 仅用于显示，`resolverVersion` 标识生成语义，`rules` 按解析顺序记录全部选中文件及其 SHA-256。`inputs` 保存项目 Profile 与 Registry 的摘要；`generatedSha256` 是按相对路径和文件内容计算的解析结果摘要，不包含时间戳。`resolvedAt` 只用于审计，不参与解析结果。可重现性由 source、revision、resolver 版本和输入摘要共同确定；相同锁定输入若得到不同摘要，命令必须报错并说明版本或生成物不一致。
+
+Manifest 与 `.ai/resolved/` 作为一个逻辑事务更新：先在同一文件系统的临时目录组装新 Manifest 与解析结果，完成全部校验后再发布；失败时回滚并保留原有生成物，不能留下新旧版本混搭。`eng resolve` 使用当前锁定 revision，不联网升级。
 
 这样可以保证：
 
@@ -957,7 +996,7 @@ guideline
 
 | 规则 | 等级 |
 |---|---|
-| 禁止提交密码 | mandatory |
+| 禁止使用 denylist 中的依赖 | mandatory |
 | 数据库变更必须 Migration | mandatory |
 | 优先组合而非继承 | recommended |
 | 单文件建议控制规模 | guideline |
@@ -973,6 +1012,8 @@ guideline
 ```text
 validate = fail
 ```
+
+MVP 中，`mandatory` 规则必须注册一个支持的确定性检查器；没有检查器或检查器配置不完整时，Registry 校验失败，不能把该规则当作已强制执行。主观规则在 MVP 中标记为 `recommended` 或 `guideline`；不得把 AI Review 的意见映射为确定性失败。
 
 ### recommended
 
@@ -1003,7 +1044,7 @@ title: Avoid Premature Abstraction
 
 category: architecture
 
-level: mandatory
+level: recommended
 
 scope:
   - all
@@ -1043,7 +1084,7 @@ Markdown 可以作为展示层，而 YAML / JSON 作为规则元数据。
 
 ## 18. Validator 设计
 
-Validator 第一版不要做得太重。
+Validator 第一版只执行有明确输入、规则和结果的检查。
 
 不要一开始就试图构建一个完整 AI SonarQube。
 
@@ -1052,6 +1093,12 @@ Validator 第一版不要做得太重。
 ---
 
 ### 18.1 Project Structure
+
+检查项必须由启用的规则声明适用条件；不适用时跳过，不对所有项目套用同一套文件要求。例如只有启用数据库能力且配置了数据库 Migration 规则时，才检查 Migration。
+
+MVP 确定性检查器限定为：`file_exists`（支持明确 glob）、`dependency_present` / `dependency_absent`（按注册的包清单解析器读取依赖清单）、`migration_exists`（仅对声明支持的数据库与 Migration 工具生效）。检查器遇到不支持的清单格式或无法确定结果时返回 `unknown`，不能猜测为通过；存在 `unknown` 时本次命令以退出码 `3` 结束。
+
+每条检查结果至少包含规则 ID、级别、文件路径（如适用）、实际值、期望值和原因。退出码固定为：`0` 无失败（允许有警告），`1` 存在 mandatory 失败，`2` 配置或规则解析错误，`3` 检查器无法运行或输入格式不支持。不得用“依赖过重”等没有阈值或证据的主观判断作为确定性失败条件。
 
 检查：
 
@@ -1074,20 +1121,16 @@ Validator 第一版不要做得太重。
 是否擅自引入 Redis
 是否擅自引入 MQ
 是否存在 SNAPSHOT
-是否引入过重依赖
+是否违反规则中明确列出的依赖限制
 ```
 
 ---
 
-### 18.3 AI Review
+### 18.3 AI Review（MVP 之后）
 
 主观工程问题交给 AI。
 
-例如：
-
-```bash
-eng validate --ai
-```
+AI Review 不属于 MVP 的确定性 `eng validate`。后续若实现，可作为显式、非阻断的独立审查模式运行；报告 findings 和引用证据，不得伪装成确定性检查结果。
 
 AI 根据 resolved rules 审查：
 
@@ -1111,7 +1154,7 @@ AI 根据 resolved rules 审查：
 → AI Review
 ```
 
-不要混在一起。
+不要混在一起。MVP 只实现可判定的规则检查；主观审查作为后续能力，不影响确定性命令的退出码。
 
 ---
 
