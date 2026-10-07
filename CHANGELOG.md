@@ -6,9 +6,15 @@
 
 ### 新增
 
+- `eng resolve` 在项目根目录维护 Codex 使用的 `AGENTS.md` 托管区块，列出已选规则文件并引导 Codex 读取。
+
 ### 变更
 
+- `eng validate` 明确说明校验状态仅覆盖已解析快照与 Registry 确定性检查，不代表语义或代码质量合规。
+
 ### 修复
+
+- Profile 引用 Registry 中不存在的规则时给出非阻断警告；校验可发现 `AGENTS.md` 托管区块过期。
 
 ### 安全
 
