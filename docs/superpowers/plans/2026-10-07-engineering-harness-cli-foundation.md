@@ -13,6 +13,7 @@
 ## Global Constraints
 
 - Standards Repository 以本地 Git checkout 提供。
+- `registry.yaml` 与本次解析选中的 Markdown 文件必须与该 HEAD 中已提交的 Git blob 内容一致。
 - 首轮 `resolve` 从该 checkout 的 HEAD 建立锁定；后续默认要求 Manifest 的 commit SHA 与 checkout HEAD 一致。
 - 显式 `--upgrade <revision>` 才允许切换锁定 revision。
 - 默认 Profile 为 `./engineering.yaml`，默认输出目录为 `./.ai`。
@@ -88,12 +89,13 @@
 - Produces: `createManifest(input: ManifestInput): Promise<Manifest>`
 - Produces: `writeResolvedGeneration(outputRoot: string, files: ResolvedRuleFile[], manifest: Manifest): Promise<void>`
 
-- [ ] Require `--standards`; resolve and validate `--profile`, `--output`, and optional `--upgrade` paths/revision; require the upgrade revision to equal the local checkout's full HEAD SHA. Resolve registry and rule paths relative to the Standards root, and project checks relative to the project root.
-- [ ] Resolve dotted scalar conditions with AND semantics; validate rule paths stay inside the standards root and reject symlink traversal. Directory paths recursively include `.md` files only.
-- [ ] Reject duplicate IDs, declared conflicts, and supersedes cycles. If matched rule A supersedes B, omit B; sort remaining rule/file output by priority, rule ID, then source-relative path.
-- [ ] Build each resolved file under `.ai/resolved/<ordered-rule-id>/<source-relative-path>` so equal basenames do not collide. Preserve UTF-8 source bytes and use POSIX separators in the manifest.
-- [ ] Compute SHA-256 for Profile, Registry, each selected Markdown file and the normalized resolved tree; exclude audit timestamps from the tree digest.
-- [ ] On first resolve, lock the local HEAD. On later resolve, reject a changed HEAD unless `--upgrade <revision>` was explicitly provided. Write the full generation into a temporary sibling directory; publish only `.ai/resolved/` and `.ai/manifest.yaml`, preserving other `.ai` content. If publication fails, restore the prior versions of both generated targets and remove the temporary output.
+- [x] Require `--standards`; resolve and validate `--profile`, `--output`, and optional `--upgrade` paths/revision; require the upgrade revision to equal the local checkout's full HEAD SHA. Resolve registry and rule paths relative to the Standards root, and project checks relative to the project root.
+- [x] Resolve dotted scalar conditions with AND semantics; validate rule paths stay inside the standards root and reject symlink traversal. Directory paths recursively include `.md` files only.
+- [x] Reject duplicate IDs, declared conflicts, and supersedes cycles. If matched rule A supersedes B, omit B; sort remaining rule/file output by priority, rule ID, then source-relative path.
+- [x] Build each resolved file under `.ai/resolved/<ordered-rule-id>/<source-relative-path>` so equal basenames do not collide. Preserve UTF-8 source bytes and use POSIX separators in the manifest.
+- [x] Compute SHA-256 for Profile, Registry, each selected Markdown file and the normalized resolved tree; exclude audit timestamps from the tree digest.
+- [x] Compare `registry.yaml` and each selected rule file with their blobs at the locked HEAD; reject dirty or untracked standards inputs so the recorded revision actually identifies the hashed standards content.
+- [x] On first resolve, lock the local HEAD. On later resolve, reject a changed HEAD unless `--upgrade <revision>` was explicitly provided. Write the full generation into a temporary sibling directory; publish only `.ai/resolved/` and `.ai/manifest.yaml`, preserving other `.ai` content. If publication fails, restore the prior versions of both generated targets and remove the temporary output.
 - [ ] Run `npm run build` and `git diff --check`; commit as `实现确定性规则解析与 Manifest`.
 
 ### Task 3: Deterministic Validator

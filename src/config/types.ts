@@ -80,3 +80,19 @@ export interface Manifest {
   generatedSha256: string;
   rules: ManifestRule[];
 }
+
+export interface ResolvedRuleFile {
+  ruleId: string;
+  sourcePath: string;
+  sourceSha256: string;
+  destinationPath: string;
+  content: string;
+}
+
+export interface ManifestInput {
+  registry: Registry;
+  revision: string;
+  profileContent: string;
+  registryContent: string;
+  resolvedFiles: ResolvedRuleFile[];
+}
