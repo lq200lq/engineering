@@ -3,7 +3,7 @@
 ## 项目结构
 
 - `src/cli.ts` 是 CLI 入口；`config/` 负责配置解析与 JSON Schema，`resolver/` 选择规则，`manifest/` 生成锁定清单，`validator/` 执行确定性检查，`io/` 管理文件、Git 和发布操作。
-- `standards/` 是独立 Git 子仓库，保存规范、Registry 和规则；`docs/` 保存设计、规格与实施计划；`scripts/prepare-package.mjs` 准备 npm 发布内容。
+- `standards/` 是独立 Git 子仓库，保存规范、Registry 和规则；`docs/` 用于本地保存设计、规格与实施计划，不纳入 Git 提交；`scripts/prepare-package.mjs` 准备 npm 发布内容。
 - `dist/` 是编译输出，`node_modules/` 是依赖目录，均不应提交。
 
 ## 开发、构建与验证
