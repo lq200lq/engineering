@@ -12,7 +12,7 @@ import { writeResolvedGeneration } from "./io/publish.js";
 import { exitCodeFor } from "./validator/checks.js";
 import { validateProject } from "./validator/run.js";
 
-const usage = `Engineering Harness\n\n用法:\n  eng <命令> [选项]\n\n命令:\n  resolve    解析并生成项目规则\n  validate   校验已生成规则和项目约束\n\n选项:\n  --standards <path>  Standards Repository 本地路径\n  --profile <path>    项目 Profile（默认 ./engineering.yaml）\n  --output <path>     输出目录（默认 ./.ai）\n  --upgrade <sha>     显式锁定本地 Standards HEAD\n  --help              显示帮助`;
+const usage = `Engineering Harness\n\n用法:\n  eng <命令> [选项]\n\n命令:\n  resolve    解析并生成项目规则\n  validate   校验已生成规则和项目约束\n\n选项:\n  --standards <path>  Standards Repository 本地路径（默认 ./standards）\n  --profile <path>    项目 Profile（默认 ./engineering.yaml）\n  --output <path>     输出目录（默认 ./.ai）\n  --upgrade <sha>     显式锁定本地 Standards HEAD\n  --help              显示帮助`;
 
 const commandOptions = {
   standards: { type: "string" },
@@ -24,7 +24,7 @@ const commandOptions = {
 
 type CommandOptions =
   | { help: true }
-  | { help: false; standards: string; profile?: string; output?: string; upgrade?: string };
+  | { help: false; standards?: string; profile?: string; output?: string; upgrade?: string };
 
 function parseOptions(command: string, args: string[]): CommandOptions {
   const { values, tokens } = parseArgs({
@@ -42,14 +42,12 @@ function parseOptions(command: string, args: string[]): CommandOptions {
   }
 
   if (seen.has("help")) return { help: true };
-  if (!seen.has("standards")) throw new Error(`${command} 命令必须提供 --standards <path>`);
   if (command === "validate" && seen.has("upgrade")) {
     throw new Error("validate 命令不接受 --upgrade");
   }
-  if (typeof values.standards !== "string") throw new Error(`${command} 命令必须提供 --standards <path>`);
   return {
     help: false,
-    standards: values.standards,
+    ...(typeof values.standards === "string" ? { standards: values.standards } : {}),
     ...(typeof values.profile === "string" ? { profile: values.profile } : {}),
     ...(typeof values.output === "string" ? { output: values.output } : {}),
     ...(typeof values.upgrade === "string" ? { upgrade: values.upgrade } : {}),
@@ -84,7 +82,7 @@ async function readPreviousManifest(outputRoot: string): Promise<Manifest | unde
 
 async function resolveCommand(options: CommandOptions): Promise<void> {
   if (options.help) throw new ConfigError("resolve 命令参数不完整");
-  const standardsRoot = path.resolve(options.standards);
+  const standardsRoot = path.resolve(options.standards ?? "./standards");
   const profilePath = path.resolve(options.profile ?? "./engineering.yaml");
   const outputRoot = path.resolve(options.output ?? "./.ai");
   const registryPath = await resolveRegularFileInside(standardsRoot, "registry.yaml");
@@ -126,7 +124,7 @@ async function resolveCommand(options: CommandOptions): Promise<void> {
 async function validateCommand(options: CommandOptions): Promise<void> {
   if (options.help) throw new ConfigError("validate 命令参数不完整");
   const projectRoot = process.cwd();
-  const standardsRoot = path.resolve(options.standards);
+  const standardsRoot = path.resolve(options.standards ?? "./standards");
   const profilePath = path.resolve(options.profile ?? "./engineering.yaml");
   const outputRoot = path.resolve(options.output ?? "./.ai");
   const report = await validateProject(projectRoot, standardsRoot, profilePath, outputRoot);

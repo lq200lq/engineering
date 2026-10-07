@@ -12,7 +12,7 @@
 - `validate` 校验 Profile、Registry、Manifest、生成文件摘要及适用的确定性项目规则。
 - Standards Repository 以本地 Git checkout 提供。首轮 `resolve` 从该 checkout 的 HEAD 建立锁定；后续默认要求 Manifest 的 commit SHA 与 checkout HEAD 一致。显式 `--upgrade <revision>` 才允许切换锁定 revision。
 - `registry.yaml` 与本次解析选中的 Markdown 文件必须与该 HEAD 中已提交的 Git blob 内容一致；未提交或未跟踪的规则输入报配置错误，避免 Manifest SHA 与实际规则内容脱节。
-- CLI 参数：`eng resolve --standards <path> [--profile <path>] [--output <path>] [--upgrade <revision>]`；`eng validate --standards <path> [--profile <path>] [--output <path>]`。默认 Profile 为 `./engineering.yaml`，默认输出目录为 `./.ai`。升级 revision 必须是本地 checkout 当前 HEAD 的完整 commit SHA。
+- CLI 参数：`eng resolve [--standards <path>] [--profile <path>] [--output <path>] [--upgrade <revision>]`；`eng validate [--standards <path>] [--profile <path>] [--output <path>]`。默认 Standards Repository 为当前项目下的 `./standards`，默认 Profile 为 `./engineering.yaml`，默认输出目录为 `./.ai`。升级 revision 必须是本地 checkout 当前 HEAD 的完整 commit SHA。
 - 本阶段不实现远程下载/`eng sync`、交互式 `eng init`、`eng explain`、AI Review、IDE Adapter、CI 集成或服务端。
 
 ## 输入格式

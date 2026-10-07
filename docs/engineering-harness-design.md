@@ -711,7 +711,7 @@ registry 配置
 
 第一版不建议设计太多命令。
 
-本仓库当前只实现 `eng resolve` 和 `eng validate`。本节中 `init`、远程 `sync` 和 `explain` 是后续设计目标，不代表当前 CLI 已支持。
+本仓库当前只实现 `eng resolve` 和 `eng validate`。默认从项目根目录的 `./standards` 读取规范库，也可用 `--standards <path>` 覆盖。本节中 `init`、远程 `sync` 和 `explain` 是后续设计目标，不代表当前 CLI 已支持。
 
 核心保留五个。
 
@@ -768,10 +768,10 @@ CLAUDE.md
 ### 13.2 eng resolve
 
 ```bash
-eng resolve --standards <本地 Standards 仓库路径> [--profile <路径>] [--output <路径>] [--upgrade <完整 commit SHA>]
+eng resolve [--standards <本地 Standards 仓库路径>] [--profile <路径>] [--output <路径>] [--upgrade <完整 commit SHA>]
 ```
 
-根据当前 `engineering.yaml` 重新解析应该启用的规则。默认 Profile 为 `./engineering.yaml`，默认输出目录为 `./.ai`。Standards 必须是本地 Git checkout；`registry.yaml` 和匹配的 Markdown 规则文件须与 checkout 当前 HEAD 中的已提交内容一致。首次解析锁定当前 HEAD；后续 revision 变化时必须通过 `--upgrade` 显式确认当前完整 commit SHA。此命令不下载 Standards，也不执行远程同步。
+根据当前 `engineering.yaml` 重新解析应该启用的规则。默认 Standards 为 `./standards`，默认 Profile 为 `./engineering.yaml`，默认输出目录为 `./.ai`。Standards 必须是本地 Git checkout；`registry.yaml` 和匹配的 Markdown 规则文件须与 checkout 当前 HEAD 中的已提交内容一致。首次解析锁定当前 HEAD；后续 revision 变化时必须通过 `--upgrade` 显式确认当前完整 commit SHA。此命令不下载 Standards，也不执行远程同步。
 
 适合：
 
@@ -813,10 +813,10 @@ v1.9.0
 ### 13.4 eng validate
 
 ```bash
-eng validate --standards <本地 Standards 仓库路径> [--profile <路径>] [--output <路径>]
+eng validate [--standards <本地 Standards 仓库路径>] [--profile <路径>] [--output <路径>]
 ```
 
-检查 Manifest、Profile/Registry 摘要、规则文件和生成树，并运行 Registry 中适用于当前 Profile 的确定性检查。当前检查器只支持项目相对 `file_exists` / `migration_exists` glob，以及 `package.json` 中 `dependencies`、`devDependencies`、`optionalDependencies` 的依赖存在性检查；不比较版本，也不判断自然语言规范。
+检查 Manifest、Profile/Registry 摘要、规则文件和生成树，并运行 Registry 中适用于当前 Profile 的确定性检查。默认 Standards 路径是 `./standards`，可用 `--standards` 覆盖。当前检查器只支持项目相对 `file_exists` / `migration_exists` glob，以及 `package.json` 中 `dependencies`、`devDependencies`、`optionalDependencies` 的依赖存在性检查；不比较版本，也不判断自然语言规范。
 
 例如：
 

@@ -9,6 +9,8 @@ Engineering Harness 是一个本地优先的 TypeScript CLI，用项目 Profile 
 
 `registry.yaml` 和本次选中的规则文件必须与 Standards 仓库当前 HEAD 的内容一致。修改规范后，先在 Standards 仓库提交，再运行 `eng resolve`。
 
+本项目通过 `standards/` Git submodule 关联默认规范库。克隆项目时使用 `git clone --recurse-submodules https://github.com/lq200lq/engineering.git`；已有 checkout 可运行 `git submodule update --init --recursive`。当前关联的规范库尚只有 `LICENSE`，需要先向规范库提交 `registry.yaml` 和规则 Markdown 后，`eng resolve` / `eng validate` 才能成功。
+
 ## 安装与构建
 
 在本仓库根目录运行：
@@ -86,20 +88,20 @@ rules:
 
 ## 命令
 
-命令从业务项目根目录执行。`--standards` 指向本机 Standards Git checkout；默认 Profile 是 `./engineering.yaml`，默认输出目录是 `./.ai`。
+命令从业务项目根目录执行。`--standards` 可覆盖 Standards Git checkout，缺省使用 submodule 路径 `./standards`；默认 Profile 是 `./engineering.yaml`，默认输出目录是 `./.ai`。
 
 ```sh
 # 首次解析并锁定 Standards 当前 HEAD
-node /path/to/engineering-standards/dist/cli.js resolve --standards /path/to/standards
+node /path/to/engineering/dist/cli.js resolve
 
 # Standards 已提交新版本后显式升级锁定
-node /path/to/engineering-standards/dist/cli.js resolve --standards /path/to/standards --upgrade <完整 commit SHA>
+node /path/to/engineering/dist/cli.js resolve --upgrade <完整 commit SHA>
 
 # 检查 Manifest、生成文件和项目规则
-node /path/to/engineering-standards/dist/cli.js validate --standards /path/to/standards
+node /path/to/engineering/dist/cli.js validate
 ```
 
-可用 `--profile <path>` 指定其他 Profile，或用 `--output <path>` 指定生成目录。Profile 和输出路径相对于执行命令时的当前目录解析。
+也可传 `--standards <path>` 覆盖默认规范库路径；用 `--profile <path>` 指定其他 Profile，或用 `--output <path>` 指定生成目录。这些路径相对于执行命令时的当前目录解析。
 
 | 退出码 | 含义 |
 | --- | --- |

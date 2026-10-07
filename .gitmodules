@@ -1,0 +1,4 @@
+[submodule "standards"]
+	path = standards
+	url = https://github.com/lq200lq/engineering-standards.git
+	branch = main

@@ -15,6 +15,7 @@
 - Standards Repository 以本地 Git checkout 提供。
 - `registry.yaml` 与本次解析选中的 Markdown 文件必须与该 HEAD 中已提交的 Git blob 内容一致。
 - 首轮 `resolve` 从该 checkout 的 HEAD 建立锁定；后续默认要求 Manifest 的 commit SHA 与 checkout HEAD 一致。
+- `--standards` 可省略，默认读取当前项目根目录的 `./standards`。
 - 显式 `--upgrade <revision>` 才允许切换锁定 revision。
 - 默认 Profile 为 `./engineering.yaml`，默认输出目录为 `./.ai`。
 - `mandatory` 检查必须使用支持的检查器；没有检查器的 mandatory 规则属于 Registry 配置错误。
@@ -89,7 +90,7 @@
 - Produces: `createManifest(input: ManifestInput): Promise<Manifest>`
 - Produces: `writeResolvedGeneration(outputRoot: string, files: ResolvedRuleFile[], manifest: Manifest): Promise<void>`
 
-- [x] Require `--standards`; resolve and validate `--profile`, `--output`, and optional `--upgrade` paths/revision; require the upgrade revision to equal the local checkout's full HEAD SHA. Resolve registry and rule paths relative to the Standards root, and project checks relative to the project root.
+- [x] Resolve `--standards` (default `./standards`), `--profile`, `--output`, and optional `--upgrade` paths/revision; require the upgrade revision to equal the local checkout's full HEAD SHA. Resolve registry and rule paths relative to the Standards root, and project checks relative to the project root.
 - [x] Resolve dotted scalar conditions with AND semantics; validate rule paths stay inside the standards root and reject symlink traversal. Directory paths recursively include `.md` files only.
 - [x] Reject duplicate IDs, declared conflicts, and supersedes cycles. If matched rule A supersedes B, omit B; sort remaining rule/file output by priority, rule ID, then source-relative path.
 - [x] Build each resolved file under `.ai/resolved/<ordered-rule-id>/<source-relative-path>` so equal basenames do not collide. Preserve UTF-8 source bytes and use POSIX separators in the manifest.
