@@ -19,7 +19,7 @@
 
 ### Project Profile
 
-`engineering.yaml` 使用现有设计文档第 10 节的 `project`、`capabilities`、`stack`、`deployment` 和 `preferences` 字段。Schema 拒绝未知字段和类型错误；Profile 中缺失的能力字段在规则匹配时视为未启用。
+`engineering.yaml` 使用现有设计文档第 10 节的 `project`、`capabilities`、`stack`、`deployment` 和 `preferences` 字段。`capabilities` 支持 backend、frontend、database、cache、mq、ai 和 fileStorage。Schema 拒绝未知字段和类型错误；Profile 中缺失的能力字段在规则匹配时视为未启用。
 
 ### Registry
 

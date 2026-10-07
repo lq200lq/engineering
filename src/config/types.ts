@@ -13,6 +13,7 @@ export interface ProjectProfile {
     ai?: boolean;
     cache?: boolean;
     mq?: boolean;
+    fileStorage?: boolean;
   };
   stack?: {
     backend?: { language?: string; framework?: string };

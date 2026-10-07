@@ -532,6 +532,7 @@ capabilities:
   ai: true
   cache: false
   mq: false
+  fileStorage: false
 
 stack:
   backend:
@@ -1287,7 +1288,7 @@ rules/
 
 ### 当前实现
 
-- 已实现：`eng resolve`、`eng validate`、Profile/Registry/Manifest Schema、确定性规则匹配、暂存发布、Manifest 摘要校验，以及 Registry 声明的文件和 `package.json` 依赖检查。
+- 已实现：`eng resolve`、`eng validate`、Profile/Registry/Manifest Schema、确定性规则匹配、暂存发布、Manifest 摘要校验，以及 Registry 声明的文件和 `package.json` 依赖检查。默认规范 submodule 提供通用原则、能力规则、决策规则、项目检查规则，以及 Java、Vue、PostgreSQL 初始技术栈规则。
 - 尚未实现：`eng init`、远程 `eng sync`、`eng explain`、AI Adapter、AI Review、CI 集成和服务端。
 - 依赖检查目前仅理解 Node `package.json`；文件 glob 只在项目根目录内检查。
 

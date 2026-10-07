@@ -23,7 +23,8 @@
         "database": { "type": "boolean" },
         "ai": { "type": "boolean" },
         "cache": { "type": "boolean" },
-        "mq": { "type": "boolean" }
+        "mq": { "type": "boolean" },
+        "fileStorage": { "type": "boolean" }
       }
     },
     "stack": {

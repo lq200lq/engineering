@@ -9,7 +9,7 @@ Engineering Harness 是一个本地优先的 TypeScript CLI，用项目 Profile 
 
 `registry.yaml` 和本次选中的规则文件必须与 Standards 仓库当前 HEAD 的内容一致。修改规范后，先在 Standards 仓库提交，再运行 `eng resolve`。
 
-本项目通过 `standards/` Git submodule 关联默认规范库。克隆项目时使用 `git clone --recurse-submodules https://github.com/lq200lq/engineering.git`；已有 checkout 可运行 `git submodule update --init --recursive`。当前关联的规范库尚只有 `LICENSE`，需要先向规范库提交 `registry.yaml` 和规则 Markdown 后，`eng resolve` / `eng validate` 才能成功。
+本项目通过 `standards/` Git submodule 关联默认规范库。克隆项目时使用 `git clone --recurse-submodules https://github.com/lq200lq/engineering.git`；已有 checkout 可运行 `git submodule update --init --recursive`。规范库提供 Constitution、能力、决策、项目检查规则，以及 Java、Vue、PostgreSQL 的初始技术栈规则。需要其他技术栈规则时，应在规范库中补充对应文件和 Registry 条目。
 
 ## 安装与构建
 
@@ -37,6 +37,7 @@ project:
 
 capabilities:
   frontend: true
+  fileStorage: false
 
 stack:
   frontend:
