@@ -14,7 +14,7 @@ Engineering Harness 是一个本地优先的工程规范 CLI。它根据项目 P
 npx --yes --package=engineering-harness -- eng init
 ```
 
-`eng init` 会通过终端询问项目名称、类型、能力和相关技术栈，并生成 `engineering.yaml`；部署和架构偏好可跳过。配置路径也可用 `eng init --profile <path>` 指定。向导不会覆盖已有文件，生成后可直接运行 `eng resolve`：
+`eng init` 会通过终端询问项目名称、类型、能力和相关技术栈，并生成 `engineering.yaml`；部署和架构偏好可跳过。配置路径也可用 `eng init --profile <path>` 指定。向导不会覆盖已有文件，创建后会询问是否立即运行 `resolve`（默认是）；输入 `n` 可稍后再运行：
 
 ```yaml
 project:

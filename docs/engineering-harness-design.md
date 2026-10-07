@@ -735,7 +735,7 @@ registry 配置
 
 ### 13.1 eng init
 
-`init` 通过终端向导收集项目名称、类型、规模、能力，以及所选后端、前端和数据库的技术栈；部署和偏好字段可跳过。默认从当前目录名建议项目名称，在 `./engineering.yaml` 写入通过 Schema 校验的 Profile。也可通过 `--profile <path>` 指定路径；目标文件已存在时命令报错且不覆盖。
+`init` 通过终端向导收集项目名称、类型、规模、能力，以及所选后端、前端和数据库的技术栈；部署和偏好字段可跳过。默认从当前目录名建议项目名称，在 `./engineering.yaml` 写入通过 Schema 校验的 Profile。也可通过 `--profile <path>` 指定路径；目标文件已存在时命令报错且不覆盖。创建后默认询问是否立即运行 `resolve`。
 
 ```bash
 eng init

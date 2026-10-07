@@ -206,7 +206,25 @@ async function initCommand(options: CommandOptions): Promise<void> {
     }
     throw error;
   }
-  process.stdout.write(`\n已创建项目 Profile: ${profilePath}\n接下来可运行 eng resolve 生成规则。\n`);
+  process.stdout.write(`\n已创建项目 Profile: ${profilePath}\n`);
+
+  const followUp = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    while (true) {
+      const answer = (await followUp.question("是否立即运行 eng resolve 生成规则？ [Y/n]: ")).trim().toLowerCase();
+      if (!answer || ["y", "yes", "是"].includes(answer)) {
+        await resolveCommand({ help: false, ...(options.profile ? { profile: options.profile } : {}) });
+        break;
+      }
+      if (["n", "no", "否"].includes(answer)) {
+        process.stdout.write("已跳过规则生成，之后可运行 eng resolve。\n");
+        break;
+      }
+      process.stdout.write("请输入 y 或 n。\n");
+    }
+  } finally {
+    followUp.close();
+  }
 }
 
 async function resolveCommand(options: CommandOptions): Promise<void> {
