@@ -11,20 +11,30 @@ Engineering Harness 是一个本地优先的 TypeScript CLI，用项目 Profile 
 
 本项目通过 `standards/` Git submodule 关联默认规范库。克隆项目时使用 `git clone --recurse-submodules https://github.com/lq200lq/engineering.git`；已有 checkout 可运行 `git submodule update --init --recursive`。规范库提供 Constitution、能力、决策、项目检查规则，以及 Java、Vue、PostgreSQL 的初始技术栈规则。需要其他技术栈规则时，应在规范库中补充对应文件和 Registry 条目。
 
-## 安装与构建
+## 安装与使用
 
-在本仓库根目录运行：
-
-```sh
-npm install
-npm run build
-```
-
-开发时可以通过 `node dist/cli.js` 调用。安装或链接此 npm 包后也可以使用 `eng` 命令。
+业务项目无需克隆本仓库或本地构建 CLI。发布到 npm 后，可直接用 `npx` 临时运行：
 
 ```sh
-node dist/cli.js --help
+npx --yes --package=engineering-harness -- eng --help
+npx --yes --package=engineering-harness -- eng resolve
+npx --yes --package=engineering-harness -- eng validate
 ```
+
+也可以把 CLI 安装为项目开发依赖，或全局安装：
+
+```sh
+npm install --save-dev engineering-harness
+npx eng resolve
+npx eng validate
+
+# 或全局安装
+npm install --global engineering-harness
+eng resolve
+eng validate
+```
+
+CLI npm 包包含发布时固定 revision 的完整 Standards 规范快照。使用者不需要单独克隆规范库；新发布的 CLI 版本会携带对应的新规范版本。当前仓库的开发者仍可从仓库根目录运行 `npm install`、`npm run build`，并由 `standards/` 子模块提供默认规范内容。
 
 ## 项目 Profile
 
@@ -89,17 +99,17 @@ rules:
 
 ## 命令
 
-命令从业务项目根目录执行。`--standards` 可覆盖 Standards Git checkout，缺省使用 submodule 路径 `./standards`；默认 Profile 是 `./engineering.yaml`，默认输出目录是 `./.ai`。
+命令从业务项目根目录执行。`--standards` 可覆盖 Standards Git checkout；缺省时优先使用当前项目内的 `./standards` Git checkout，否则使用 CLI 包内固定 revision 的规范快照。默认 Profile 是 `./engineering.yaml`，默认输出目录是 `./.ai`。
 
 ```sh
-# 首次解析并锁定 Standards 当前 HEAD
-node /path/to/engineering/dist/cli.js resolve
+# 首次解析并锁定所用 Standards revision
+npx eng resolve
 
-# Standards 已提交新版本后显式升级锁定
-node /path/to/engineering/dist/cli.js resolve --upgrade <完整 commit SHA>
+# 更新到包含新规范的 CLI 版本后显式升级锁定
+npx eng resolve --upgrade <完整 commit SHA>
 
 # 检查 Manifest、生成文件和项目规则
-node /path/to/engineering/dist/cli.js validate
+npx eng validate
 ```
 
 也可传 `--standards <path>` 覆盖默认规范库路径；用 `--profile <path>` 指定其他 Profile，或用 `--output <path>` 指定生成目录。这些路径相对于执行命令时的当前目录解析。
@@ -115,6 +125,6 @@ mandatory 失败与 unknown 同时出现时，退出码为 `1`。输出按规则
 
 ## 当前范围
 
-目前实现 `eng resolve` 和 `eng validate`。`resolve` 只读取本地 Standards checkout，不下载或切换版本；显式 `--upgrade` 只能确认使用 checkout 当前 HEAD 的完整 commit SHA。发布只替换 `.ai/resolved/` 与 `.ai/manifest.yaml`，保留输出目录内其他内容。
+目前实现 `eng resolve` 和 `eng validate`。发布的 npm CLI 使用包内固定 Standards 快照，不下载或切换规范版本；使用本地 Git checkout 时，显式 `--upgrade` 只能确认使用 checkout 当前 HEAD 的完整 commit SHA。发布只替换 `.ai/resolved/` 与 `.ai/manifest.yaml`，保留输出目录内其他内容。
 
 以下能力仍是设计方向，尚未实现：`eng init`、远程 `eng sync`、`eng explain`、AI Review、AI 工具适配器、CI 集成和服务端功能。Validator 也不判断自然语言规范，不比较依赖版本，不支持非 Node 包清单。

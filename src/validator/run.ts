@@ -2,8 +2,8 @@ import { lstat, readFile, readdir, realpath } from "node:fs/promises";
 import path from "node:path";
 import { ConfigError, parseManifest, parseProfile, parseRegistry, readYamlFile } from "../config/load.js";
 import type { Manifest, ProjectProfile, Registry } from "../config/types.js";
-import { assertGitFileMatchesHead, getGitHead } from "../io/git.js";
 import { resolveRegularFileInside } from "../io/paths.js";
+import type { StandardsSource } from "../io/standards.js";
 import { createManifest } from "../manifest/manifest.js";
 import { hashTree, sha256 } from "../manifest/hash.js";
 import { resolveRules } from "../resolver/resolve.js";
@@ -112,13 +112,12 @@ function assertManifestMatches(actual: Manifest, expected: Manifest): void {
 }
 
 export async function validateGeneratedState(
-  standardsRoot: string,
+  standards: StandardsSource,
   profileContent: string,
   registryContent: string,
   profile: ProjectProfile,
   registry: Registry,
   outputRoot: string,
-  revision: string,
 ): Promise<void> {
   let outputStat;
   try {
@@ -131,12 +130,12 @@ export async function validateGeneratedState(
     throw new ConfigError(`输出路径必须是普通目录，不能是符号链接: ${outputRoot}`);
   }
   const actualManifest = await readManifest(outputRoot);
-  if (actualManifest.standards.revision !== revision) {
-    throw new ConfigError(`Manifest revision 已过期：${actualManifest.standards.revision} != ${revision}`);
+  if (actualManifest.standards.revision !== standards.revision) {
+    throw new ConfigError(`Manifest revision 已过期：${actualManifest.standards.revision} != ${standards.revision}`);
   }
 
-  const resolvedFiles = await resolveRules(profile, registry, standardsRoot, revision);
-  const expectedManifest = await createManifest({ registry, revision, profileContent, registryContent, resolvedFiles });
+  const resolvedFiles = await resolveRules(profile, registry, standards);
+  const expectedManifest = await createManifest({ registry, revision: standards.revision, profileContent, registryContent, resolvedFiles });
   assertManifestMatches(actualManifest, expectedManifest);
 
   const actualFiles = await collectResolvedFiles(path.join(outputRoot, "resolved"));
@@ -159,7 +158,7 @@ export async function validateGeneratedState(
 
 export async function validateProject(
   projectRoot: string,
-  standardsRoot: string,
+  standards: StandardsSource,
   profilePath: string,
   outputRoot: string,
 ): Promise<ValidationReport> {
@@ -168,14 +167,13 @@ export async function validateProject(
     throw new ConfigError(`${profilePath}: 无法读取 Profile: ${detail}`);
   });
   const profile = parseProfile(await readYamlFile(profilePath));
-  const registryPath = await resolveRegularFileInside(standardsRoot, "registry.yaml");
+  const registryPath = await resolveRegularFileInside(standards.root, "registry.yaml");
   const registryContent = await readFile(registryPath, "utf8").catch((error: unknown) => {
     const detail = error instanceof Error ? error.message : String(error);
     throw new ConfigError(`${registryPath}: 无法读取 Registry: ${detail}`);
   });
   const registry = parseRegistry(await readYamlFile(registryPath));
-  const revision = await getGitHead(standardsRoot);
-  await assertGitFileMatchesHead(standardsRoot, revision, "registry.yaml", registryContent);
-  await validateGeneratedState(standardsRoot, profileContent, registryContent, profile, registry, outputRoot, revision);
+  await standards.assertFileMatches("registry.yaml", registryContent);
+  await validateGeneratedState(standards, profileContent, registryContent, profile, registry, outputRoot);
   return runChecks(projectRoot, registry, profile);
 }

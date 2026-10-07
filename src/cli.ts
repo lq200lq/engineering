@@ -4,15 +4,15 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 import { ConfigError, parseManifest, parseProfile, parseRegistry, readYamlFile } from "./config/load.js";
 import type { Manifest } from "./config/types.js";
-import { assertGitFileMatchesHead, getGitHead } from "./io/git.js";
 import { resolveRegularFileInside } from "./io/paths.js";
+import { resolveStandardsSource } from "./io/standards.js";
 import { createManifest } from "./manifest/manifest.js";
 import { resolveRules } from "./resolver/resolve.js";
 import { writeResolvedGeneration } from "./io/publish.js";
 import { exitCodeFor } from "./validator/checks.js";
 import { validateProject } from "./validator/run.js";
 
-const usage = `Engineering Harness\n\n用法:\n  eng <命令> [选项]\n\n命令:\n  resolve    解析并生成项目规则\n  validate   校验已生成规则和项目约束\n\n选项:\n  --standards <path>  Standards Repository 本地路径（默认 ./standards）\n  --profile <path>    项目 Profile（默认 ./engineering.yaml）\n  --output <path>     输出目录（默认 ./.ai）\n  --upgrade <sha>     显式锁定本地 Standards HEAD\n  --help              显示帮助`;
+const usage = `Engineering Harness\n\n用法:\n  eng <命令> [选项]\n\n命令:\n  resolve    解析并生成项目规则\n  validate   校验已生成规则和项目约束\n\n选项:\n  --standards <path>  Standards Git 仓库路径（默认优先 ./standards，否则用 CLI 内置规范）\n  --profile <path>    项目 Profile（默认 ./engineering.yaml）\n  --output <path>     输出目录（默认 ./.ai）\n  --upgrade <sha>     显式锁定规范版本的完整 revision\n  --help              显示帮助`;
 
 const commandOptions = {
   standards: { type: "string" },
@@ -82,14 +82,15 @@ async function readPreviousManifest(outputRoot: string): Promise<Manifest | unde
 
 async function resolveCommand(options: CommandOptions): Promise<void> {
   if (options.help) throw new ConfigError("resolve 命令参数不完整");
-  const standardsRoot = path.resolve(options.standards ?? "./standards");
+  const standards = await resolveStandardsSource(process.cwd(), options.standards);
+  const standardsRoot = standards.root;
   const profilePath = path.resolve(options.profile ?? "./engineering.yaml");
   const outputRoot = path.resolve(options.output ?? "./.ai");
   const registryPath = await resolveRegularFileInside(standardsRoot, "registry.yaml");
-  const revision = await getGitHead(standardsRoot);
+  const revision = standards.revision;
 
   if (options.upgrade !== undefined && options.upgrade !== revision) {
-    throw new ConfigError(`--upgrade 必须等于本地 Standards HEAD: ${revision}`);
+    throw new ConfigError(`--upgrade 必须等于当前 Standards 来源的 revision: ${revision}`);
   }
 
   const profileContent = await readFile(profilePath, "utf8").catch((error: unknown) => {
@@ -100,7 +101,7 @@ async function resolveCommand(options: CommandOptions): Promise<void> {
     const detail = error instanceof Error ? error.message : String(error);
     throw new ConfigError(`${registryPath}: 无法读取 Registry: ${detail}`);
   });
-  await assertGitFileMatchesHead(standardsRoot, revision, "registry.yaml", registryContent);
+  await standards.assertFileMatches("registry.yaml", registryContent);
 
   const profile = parseProfile(await readYamlFile(profilePath));
   const registry = parseRegistry(await readYamlFile(registryPath));
@@ -115,7 +116,7 @@ async function resolveCommand(options: CommandOptions): Promise<void> {
     }
   }
 
-  const resolvedFiles = await resolveRules(profile, registry, standardsRoot, revision);
+  const resolvedFiles = await resolveRules(profile, registry, standards);
   const manifest = await createManifest({ registry, revision, profileContent, registryContent, resolvedFiles });
   await writeResolvedGeneration(outputRoot, resolvedFiles, manifest);
   process.stdout.write(`已生成 ${resolvedFiles.length} 条规则文件，revision ${revision}\n`);
@@ -124,10 +125,10 @@ async function resolveCommand(options: CommandOptions): Promise<void> {
 async function validateCommand(options: CommandOptions): Promise<void> {
   if (options.help) throw new ConfigError("validate 命令参数不完整");
   const projectRoot = process.cwd();
-  const standardsRoot = path.resolve(options.standards ?? "./standards");
+  const standards = await resolveStandardsSource(process.cwd(), options.standards);
   const profilePath = path.resolve(options.profile ?? "./engineering.yaml");
   const outputRoot = path.resolve(options.output ?? "./.ai");
-  const report = await validateProject(projectRoot, standardsRoot, profilePath, outputRoot);
+  const report = await validateProject(projectRoot, standards, profilePath, outputRoot);
   for (const result of report.results) {
     const marker =
       result.status === "unknown"

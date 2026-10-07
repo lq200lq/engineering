@@ -1,7 +1,8 @@
 {
   "name": "engineering-harness",
   "version": "0.1.0",
-  "private": true,
+  "description": "本地优先的工程规范解析与校验 CLI",
+  "license": "Apache-2.0",
   "type": "module",
   "engines": {
     "node": ">=22.17.0"
@@ -9,8 +10,19 @@
   "bin": {
     "eng": "dist/cli.js"
   },
+  "files": [
+    "dist/**",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lq200lq/engineering.git"
+  },
+  "homepage": "https://github.com/lq200lq/engineering#readme",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "prepack": "npm run build && node scripts/prepare-package.mjs"
   },
   "dependencies": {
     "ajv": "^8.20.0",
