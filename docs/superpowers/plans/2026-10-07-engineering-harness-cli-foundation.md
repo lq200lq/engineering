@@ -109,11 +109,11 @@
 - Produces: `runChecks(projectRoot: string, registry: Registry, profile: ProjectProfile): Promise<ValidationReport>`
 - Produces: `exitCodeFor(report: ValidationReport): 0 | 1 | 2 | 3`
 
-- [ ] Implement `file_exists` and `migration_exists` using project-root-relative `fs.promises.glob`; validate patterns before traversal and exclude symlink targets outside the project root.
-- [ ] Implement dependency presence/absence checks against `dependencies`, `devDependencies`, and `optionalDependencies` in `package.json`; malformed or unreadable `package.json` returns an unknown result.
-- [ ] Run checks only for matched rules. Emit stable result records with rule ID, level, check type, path, actual, expected, and reason; sort by rule ID then check index.
-- [ ] Return exit code 1 for mandatory failures, 3 for any unknown result, and 0 otherwise. Keep configuration and Resolver failures at 2; recommended findings remain warnings and do not alter the exit code. Print results in stable order with a final exit-code summary.
-- [ ] Validate Manifest revision, Profile/Registry hashes, rule hashes, and resolved-tree digest before checks; stale or inconsistent generated state returns 2.
+- [x] Implement `file_exists` and `migration_exists` using project-root-relative `fs.promises.glob`; validate patterns before traversal and exclude symlink targets outside the project root.
+- [x] Implement dependency presence/absence checks against `dependencies`, `devDependencies`, and `optionalDependencies` in `package.json`; malformed or unreadable `package.json` returns an unknown result.
+- [x] Run checks only for matched rules. Emit stable result records with rule ID, level, check type, path, actual, expected, and reason; sort by rule ID then check index.
+- [x] Return exit code 1 for mandatory failures, 3 for any unknown result, and 0 otherwise. Keep configuration and Resolver failures at 2; recommended findings remain warnings and do not alter the exit code. Print results in stable order with a final exit-code summary.
+- [x] Validate Manifest revision, Profile/Registry hashes, rule hashes, and resolved-tree digest before checks; stale or inconsistent generated state returns 2.
 - [ ] Run `npm run build` and `git diff --check`; commit as `实现确定性工程规则校验`.
 
 ### Task 4: Usage and Release Notes

@@ -9,6 +9,8 @@ import { resolveRegularFileInside } from "./io/paths.js";
 import { createManifest } from "./manifest/manifest.js";
 import { resolveRules } from "./resolver/resolve.js";
 import { writeResolvedGeneration } from "./io/publish.js";
+import { exitCodeFor } from "./validator/checks.js";
+import { validateProject } from "./validator/run.js";
 
 const usage = `Engineering Harness\n\n用法:\n  eng <命令> [选项]\n\n命令:\n  resolve    解析并生成项目规则\n  validate   校验已生成规则和项目约束\n\n选项:\n  --standards <path>  Standards Repository 本地路径\n  --profile <path>    项目 Profile（默认 ./engineering.yaml）\n  --output <path>     输出目录（默认 ./.ai）\n  --upgrade <sha>     显式锁定本地 Standards HEAD\n  --help              显示帮助`;
 
@@ -121,6 +123,24 @@ async function resolveCommand(options: CommandOptions): Promise<void> {
   process.stdout.write(`已生成 ${resolvedFiles.length} 条规则文件，revision ${revision}\n`);
 }
 
+async function validateCommand(options: CommandOptions): Promise<void> {
+  if (options.help) throw new ConfigError("validate 命令参数不完整");
+  const projectRoot = process.cwd();
+  const standardsRoot = path.resolve(options.standards);
+  const profilePath = path.resolve(options.profile ?? "./engineering.yaml");
+  const outputRoot = path.resolve(options.output ?? "./.ai");
+  const report = await validateProject(projectRoot, standardsRoot, profilePath, outputRoot);
+  for (const result of report.results) {
+    const marker = result.status === "pass" ? "PASS" : result.status === "fail" ? "FAIL" : "UNKNOWN";
+    process.stdout.write(
+      `${marker} [${result.level}] ${result.ruleId} ${result.type} ${result.path ?? "-"} actual=${JSON.stringify(result.actual)} expected=${JSON.stringify(result.expected)} — ${result.reason}\n`,
+    );
+  }
+  const exitCode = exitCodeFor(report);
+  process.stdout.write(`校验完成，退出码 ${exitCode}\n`);
+  process.exitCode = exitCode;
+}
+
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
   if (command === undefined || command === "--help" || command === "-h") {
@@ -142,7 +162,7 @@ async function main(): Promise<void> {
       await resolveCommand(options);
       return;
     }
-    throw new ConfigError("validate 命令尚未实现");
+    await validateCommand(options);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${message}\n\n${usage}\n`);
