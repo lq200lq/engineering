@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { ConfigError } from "../config/load.js";
 import { collectMarkdownFiles } from "../io/paths.js";
-import { assertGitFileMatchesHead, getGitHead } from "../io/git.js";
+import { assertGitFileMatchesHead } from "../io/git.js";
 import type { ProjectProfile, Registry, ResolvedRuleFile } from "../config/types.js";
 import { sha256 } from "../manifest/hash.js";
 import { matchRules } from "./match.js";
@@ -14,8 +14,8 @@ export async function resolveRules(
   profile: ProjectProfile,
   registry: Registry,
   standardsRoot: string,
+  revision: string,
 ): Promise<ResolvedRuleFile[]> {
-  const revision = await getGitHead(standardsRoot);
   const matched = matchRules(profile, registry);
   const resolved: ResolvedRuleFile[] = [];
 

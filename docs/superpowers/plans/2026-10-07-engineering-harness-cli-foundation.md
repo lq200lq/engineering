@@ -85,7 +85,7 @@
 
 **Interfaces:**
 - Consumes: Task 1 `ProjectProfile`, `Registry`, `Manifest`, `parseProfile`, `parseRegistry`, `parseManifest`.
-- Produces: `resolveRules(profile: ProjectProfile, registry: Registry, standardsRoot: string): Promise<ResolvedRuleFile[]>`
+- Produces: `resolveRules(profile: ProjectProfile, registry: Registry, standardsRoot: string, revision: string): Promise<ResolvedRuleFile[]>`
 - Produces: `createManifest(input: ManifestInput): Promise<Manifest>`
 - Produces: `writeResolvedGeneration(outputRoot: string, files: ResolvedRuleFile[], manifest: Manifest): Promise<void>`
 
@@ -94,7 +94,7 @@
 - [x] Reject duplicate IDs, declared conflicts, and supersedes cycles. If matched rule A supersedes B, omit B; sort remaining rule/file output by priority, rule ID, then source-relative path.
 - [x] Build each resolved file under `.ai/resolved/<ordered-rule-id>/<source-relative-path>` so equal basenames do not collide. Preserve UTF-8 source bytes and use POSIX separators in the manifest.
 - [x] Compute SHA-256 for Profile, Registry, each selected Markdown file and the normalized resolved tree; exclude audit timestamps from the tree digest.
-- [x] Compare `registry.yaml` and each selected rule file with their blobs at the locked HEAD; reject dirty or untracked standards inputs so the recorded revision actually identifies the hashed standards content.
+- [x] Capture Standards HEAD once per command and use that same revision to compare `registry.yaml` and each selected rule file with their blobs; reject dirty or untracked standards inputs so the recorded revision actually identifies the hashed standards content.
 - [x] On first resolve, lock the local HEAD. On later resolve, reject a changed HEAD unless `--upgrade <revision>` was explicitly provided. Write the full generation into a temporary sibling directory; publish only `.ai/resolved/` and `.ai/manifest.yaml`, preserving other `.ai` content. If publication fails, restore the prior versions of both generated targets and remove the temporary output.
 - [x] Run `npm run build` and `git diff --check`; commit as `实现确定性规则解析与 Manifest`.
 

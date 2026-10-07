@@ -117,7 +117,7 @@ async function resolveCommand(options: CommandOptions): Promise<void> {
     }
   }
 
-  const resolvedFiles = await resolveRules(profile, registry, standardsRoot);
+  const resolvedFiles = await resolveRules(profile, registry, standardsRoot, revision);
   const manifest = await createManifest({ registry, revision, profileContent, registryContent, resolvedFiles });
   await writeResolvedGeneration(outputRoot, resolvedFiles, manifest);
   process.stdout.write(`已生成 ${resolvedFiles.length} 条规则文件，revision ${revision}\n`);
@@ -131,7 +131,16 @@ async function validateCommand(options: CommandOptions): Promise<void> {
   const outputRoot = path.resolve(options.output ?? "./.ai");
   const report = await validateProject(projectRoot, standardsRoot, profilePath, outputRoot);
   for (const result of report.results) {
-    const marker = result.status === "pass" ? "PASS" : result.status === "fail" ? "FAIL" : "UNKNOWN";
+    const marker =
+      result.status === "unknown"
+        ? "UNKNOWN"
+        : result.status === "pass"
+          ? "PASS"
+          : result.level === "mandatory"
+            ? "FAIL"
+            : result.level === "recommended"
+              ? "WARN"
+              : "INFO";
     process.stdout.write(
       `${marker} [${result.level}] ${result.ruleId} ${result.type} ${result.path ?? "-"} actual=${JSON.stringify(result.actual)} expected=${JSON.stringify(result.expected)} — ${result.reason}\n`,
     );

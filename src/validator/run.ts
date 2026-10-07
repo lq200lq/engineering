@@ -118,6 +118,7 @@ export async function validateGeneratedState(
   profile: ProjectProfile,
   registry: Registry,
   outputRoot: string,
+  revision: string,
 ): Promise<void> {
   let outputStat;
   try {
@@ -130,12 +131,11 @@ export async function validateGeneratedState(
     throw new ConfigError(`输出路径必须是普通目录，不能是符号链接: ${outputRoot}`);
   }
   const actualManifest = await readManifest(outputRoot);
-  const revision = await getGitHead(standardsRoot);
   if (actualManifest.standards.revision !== revision) {
     throw new ConfigError(`Manifest revision 已过期：${actualManifest.standards.revision} != ${revision}`);
   }
 
-  const resolvedFiles = await resolveRules(profile, registry, standardsRoot);
+  const resolvedFiles = await resolveRules(profile, registry, standardsRoot, revision);
   const expectedManifest = await createManifest({ registry, revision, profileContent, registryContent, resolvedFiles });
   assertManifestMatches(actualManifest, expectedManifest);
 
@@ -176,6 +176,6 @@ export async function validateProject(
   const registry = parseRegistry(await readYamlFile(registryPath));
   const revision = await getGitHead(standardsRoot);
   await assertGitFileMatchesHead(standardsRoot, revision, "registry.yaml", registryContent);
-  await validateGeneratedState(standardsRoot, profileContent, registryContent, profile, registry, outputRoot);
+  await validateGeneratedState(standardsRoot, profileContent, registryContent, profile, registry, outputRoot, revision);
   return runChecks(projectRoot, registry, profile);
 }
