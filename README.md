@@ -8,7 +8,13 @@ Engineering Harness 是一个本地优先的工程规范 CLI。它根据项目 P
 
 ## 快速开始
 
-要求 Node.js `>=22.17.0`。在业务项目根目录创建 `engineering.yaml`：
+要求 Node.js `>=22.17.0`。在业务项目根目录先初始化 Profile：
+
+```sh
+npx --yes --package=engineering-harness -- eng init
+```
+
+`eng init` 会根据当前目录名生成默认的 `engineering.yaml`，不会覆盖已有文件。也可用 `eng init --profile <path>` 指定 Profile 路径。初始化后可按项目实际情况编辑 Profile，例如：
 
 ```yaml
 project:
@@ -24,7 +30,7 @@ stack:
     framework: react
 ```
 
-无需克隆本仓库或安装 CLI，直接生成并校验规则：
+无需克隆本仓库或安装 CLI，编辑 Profile 后直接生成并校验规则：
 
 ```sh
 npx --yes --package=engineering-harness -- eng resolve
@@ -37,6 +43,7 @@ npx --yes --package=engineering-harness -- eng validate
 
 ```sh
 npm install --save-dev engineering-harness
+npx eng init
 npx eng resolve
 npx eng validate
 ```
@@ -60,6 +67,7 @@ CLI 内置快照让一般使用者不需要维护第二个仓库。参与规范�
 
 | 命令 | 用途 |
 | --- | --- |
+| `eng init` | 在当前目录创建默认 `engineering.yaml`；支持 `--profile <path>` 指定路径 |
 | `eng resolve` | 根据 Profile 解析规则并写入 Manifest 与规则文件 |
 | `eng resolve --upgrade <SHA>` | 显式锁定新的 Standards commit revision |
 | `eng validate` | 校验配置、锁定、生成文件和确定性检查结果 |

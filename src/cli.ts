@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { lstat, readFile } from "node:fs/promises";
+import { lstat, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { ConfigError, parseManifest, parseProfile, parseRegistry, readYamlFile } from "./config/load.js";
@@ -12,7 +12,7 @@ import { writeResolvedGeneration } from "./io/publish.js";
 import { exitCodeFor } from "./validator/checks.js";
 import { validateProject } from "./validator/run.js";
 
-const usage = `Engineering Harness\n\n用法:\n  eng <命令> [选项]\n\n命令:\n  resolve    解析并生成项目规则\n  validate   校验已生成规则和项目约束\n\n选项:\n  --standards <path>  Standards Git 仓库路径（默认优先 ./standards，否则用 CLI 内置规范）\n  --profile <path>    项目 Profile（默认 ./engineering.yaml）\n  --output <path>     输出目录（默认 ./.ai）\n  --upgrade <sha>     显式锁定规范版本的完整 revision\n  --help              显示帮助`;
+const usage = `Engineering Harness\n\n用法:\n  eng <命令> [选项]\n\n命令:\n  init       创建默认项目 Profile\n  resolve    解析并生成项目规则\n  validate   校验已生成规则和项目约束\n\n选项:\n  --standards <path>  Standards Git 仓库路径（默认优先 ./standards，否则用 CLI 内置规范）\n  --profile <path>    项目 Profile（默认 ./engineering.yaml）\n  --output <path>     输出目录（默认 ./.ai）\n  --upgrade <sha>     显式锁定规范版本的完整 revision\n  --help              显示帮助`;
 
 const commandOptions = {
   standards: { type: "string" },
@@ -78,6 +78,22 @@ async function readPreviousManifest(outputRoot: string): Promise<Manifest | unde
     throw new ConfigError(`Manifest 必须是普通文件: ${manifestPath}`);
   }
   return parseManifest(await readYamlFile(manifestPath));
+}
+
+async function initCommand(options: CommandOptions): Promise<void> {
+  if (options.help) throw new ConfigError("init 命令参数不完整");
+  const profilePath = path.resolve(options.profile ?? "./engineering.yaml");
+  const projectName = path.basename(process.cwd()) || "my-project";
+  const profile = `project:\n  name: ${JSON.stringify(projectName)}\n  type: application\n\n# 按项目实际情况补充能力与技术栈，例如：\n# capabilities:\n#   backend: true\n#   frontend: true\n# stack:\n#   backend:\n#     language: typescript\n#     framework: express\n`;
+  try {
+    await writeFile(profilePath, profile, { encoding: "utf8", flag: "wx" });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+      throw new ConfigError(`Profile 文件已存在，未覆盖: ${profilePath}`);
+    }
+    throw error;
+  }
+  process.stdout.write(`已创建项目 Profile: ${profilePath}\n接下来可运行 eng resolve 生成规则。\n`);
 }
 
 async function resolveCommand(options: CommandOptions): Promise<void> {
@@ -155,7 +171,7 @@ async function main(): Promise<void> {
     process.stdout.write(`${usage}\n`);
     return;
   }
-  if (command !== "resolve" && command !== "validate") {
+  if (command !== "init" && command !== "resolve" && command !== "validate") {
     process.stderr.write(`未知命令 "${command}"\n\n${usage}\n`);
     process.exitCode = 2;
     return;
@@ -168,6 +184,13 @@ async function main(): Promise<void> {
     }
     if (command === "resolve") {
       await resolveCommand(options);
+      return;
+    }
+    if (command === "init") {
+      if (options.standards !== undefined || options.output !== undefined || options.upgrade !== undefined) {
+        throw new ConfigError("init 命令只接受 --profile 和 --help");
+      }
+      await initCommand(options);
       return;
     }
     await validateCommand(options);

@@ -729,13 +729,13 @@ registry 配置
 
 第一版不建议设计太多命令。
 
-本仓库当前只实现 `eng resolve` 和 `eng validate`。CLI 通过 npm 包发布，业务项目可用 `npx --package=engineering-harness -- eng ...` 或安装 npm 包后调用，无需克隆或构建本仓库。默认优先从项目根目录的 `./standards` Git checkout 读取规范；不存在时使用 CLI 包内固定 revision 的规范快照。也可用 `--standards <path>` 显式指定本地 Git checkout。本节中 `init`、远程 `sync` 和 `explain` 是后续设计目标，不代表当前 CLI 已支持。
+本仓库实现 `eng init`、`eng resolve` 和 `eng validate`。CLI 通过 npm 包发布，业务项目可用 `npx --package=engineering-harness -- eng ...` 或安装 npm 包后调用，无需克隆或构建本仓库。默认优先从项目根目录的 `./standards` Git checkout 读取规范；不存在时使用 CLI 包内固定 revision 的规范快照。也可用 `--standards <path>` 显式指定本地 Git checkout。`init` 当前以非交互方式创建最小 Profile；交互式配置、远程 `sync` 和 `explain` 仍是后续设计目标。
 
 核心保留五个。
 
 ### 13.1 eng init
 
-> 当前未实现。以下内容描述未来的初始化体验。
+当前 `init` 提供非交互式快速初始化：从当前目录名推导项目名，在 `./engineering.yaml` 创建最小 Profile。也可通过 `--profile <path>` 指定路径；目标文件已存在时命令报错且不覆盖。
 
 ```bash
 eng init
@@ -1305,8 +1305,8 @@ rules/
 
 ### 当前实现
 
-- 已实现：`eng resolve`、`eng validate`、Profile/Registry/Manifest Schema、确定性规则匹配、暂存发布、Manifest 摘要校验，以及 Registry 声明的文件和 `package.json` 依赖检查。npm CLI 包可随包分发固定 revision 的规范快照；源码仓库默认规范 submodule 提供通用原则、能力规则、决策规则、项目检查规则，以及 Java、Vue、PostgreSQL 初始技术栈规则。
-- 尚未实现：`eng init`、远程 `eng sync`、`eng explain`、AI Adapter、AI Review、CI 集成和服务端。
+- 已实现：`eng init`、`eng resolve`、`eng validate`、Profile/Registry/Manifest Schema、确定性规则匹配、暂存发布、Manifest 摘要校验，以及 Registry 声明的文件和 `package.json` 依赖检查。npm CLI 包可随包分发固定 revision 的规范快照；源码仓库默认规范 submodule 提供通用原则、能力规则、决策规则、项目检查规则，以及 Java、Vue、PostgreSQL 初始技术栈规则。
+- 尚未实现：交互式 Profile 配置、远程 `eng sync`、`eng explain`、AI Adapter、AI Review、CI 集成和服务端。
 - 依赖检查目前仅理解 Node `package.json`；文件 glob 只在项目根目录内检查。
 
 ---
