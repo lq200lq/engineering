@@ -67,7 +67,7 @@
 - Produces: `parseManifest(value: unknown): Manifest`
 - Produces: `CheckSpec` union for the four check types in the spec.
 
-- [ ] Set package `type` to `module`, `engines.node` to `>=22.17.0`, `bin.eng` to `dist/cli.js`, and a `build` script using `tsc`. Install `yaml` and `ajv` as runtime dependencies and TypeScript plus `@types/node` as development dependencies; pin resolved versions in `package-lock.json`.
+- [ ] Set package `type` to `module`, `engines.node` to `>=22.17.0`, `bin.eng` to `dist/cli.js`, and a `build` script using `tsc`. Install `yaml`, `ajv`, and `ajv-formats` as runtime dependencies and TypeScript plus `@types/node` as development dependencies; pin resolved versions in `package-lock.json`.
 - [ ] Configure TypeScript for strict checking, Node ESM resolution, `src` input and `dist` output; use `node:util` `parseArgs` for CLI parsing.
 - [ ] Define JSON Schemas with `additionalProperties: false` at every object level. Profile contains only the documented `project`, `capabilities`, `stack`, `deployment`, and `preferences` fields. Registry requires `standards.id`, semver `standards.version`, and `rules` keyed by rule ID; each rule requires matching `id`, integer `priority`, `path`, and exactly one of `always: true` or non-empty `when`. Manifest requires `formatVersion: 1`, source/version, a 40- or 64-character lowercase hexadecimal revision, semver resolver version, ISO timestamp, input hashes, generated hash, and ordered rule records. Define all checker parameters and reject unsupported checker types.
 - [ ] Implement single-document YAML loading with `parseDocument`; report syntax and Schema errors with the source filename and location, then return typed values only after validation.

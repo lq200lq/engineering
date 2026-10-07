@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["formatVersion", "standards", "inputs", "generatedSha256", "rules"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "standards": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "version", "revision", "resolverVersion", "resolvedAt"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "version": { "$ref": "#/definitions/semver" },
+        "revision": { "type": "string", "pattern": "^([a-f0-9]{40}|[a-f0-9]{64})$" },
+        "resolverVersion": { "$ref": "#/definitions/semver" },
+        "resolvedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profileSha256", "registrySha256"],
+      "properties": {
+        "profileSha256": { "$ref": "#/definitions/sha256" },
+        "registrySha256": { "$ref": "#/definitions/sha256" }
+      }
+    },
+    "generatedSha256": { "$ref": "#/definitions/sha256" },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "path", "sha256"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "$ref": "#/definitions/sha256" }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$"
+    }
+  }
+}
