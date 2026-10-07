@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import { lstat, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { createInterface } from "node:readline/promises";
 import { parseArgs } from "node:util";
+import { stringify } from "yaml";
 import { ConfigError, parseManifest, parseProfile, parseRegistry, readYamlFile } from "./config/load.js";
 import type { Manifest } from "./config/types.js";
 import { resolveRegularFileInside } from "./io/paths.js";
@@ -12,7 +14,7 @@ import { writeResolvedGeneration } from "./io/publish.js";
 import { exitCodeFor } from "./validator/checks.js";
 import { validateProject } from "./validator/run.js";
 
-const usage = `Engineering Harness\n\n用法:\n  eng <命令> [选项]\n\n命令:\n  init       创建默认项目 Profile\n  resolve    解析并生成项目规则\n  validate   校验已生成规则和项目约束\n\n选项:\n  --standards <path>  Standards Git 仓库路径（默认优先 ./standards，否则用 CLI 内置规范）\n  --profile <path>    项目 Profile（默认 ./engineering.yaml）\n  --output <path>     输出目录（默认 ./.ai）\n  --upgrade <sha>     显式锁定规范版本的完整 revision\n  --help              显示帮助`;
+const usage = `Engineering Harness\n\n用法:\n  eng <命令> [选项]\n\n命令:\n  init       交互式配置并创建项目 Profile\n  resolve    解析并生成项目规则\n  validate   校验已生成规则和项目约束\n\n选项:\n  --standards <path>  Standards Git 仓库路径（默认优先 ./standards，否则用 CLI 内置规范）\n  --profile <path>    项目 Profile（默认 ./engineering.yaml）\n  --output <path>     输出目录（默认 ./.ai）\n  --upgrade <sha>     显式锁定规范版本的完整 revision\n  --help              显示帮助`;
 
 const commandOptions = {
   standards: { type: "string" },
@@ -83,8 +85,119 @@ async function readPreviousManifest(outputRoot: string): Promise<Manifest | unde
 async function initCommand(options: CommandOptions): Promise<void> {
   if (options.help) throw new ConfigError("init 命令参数不完整");
   const profilePath = path.resolve(options.profile ?? "./engineering.yaml");
-  const projectName = path.basename(process.cwd()) || "my-project";
-  const profile = `project:\n  name: ${JSON.stringify(projectName)}\n  type: application\n\n# 按项目实际情况补充能力与技术栈，例如：\n# capabilities:\n#   backend: true\n#   frontend: true\n# stack:\n#   backend:\n#     language: typescript\n#     framework: express\n`;
+  try {
+    await lstat(profilePath);
+    throw new ConfigError(`Profile 文件已存在，未覆盖: ${profilePath}`);
+  } catch (error) {
+    if (error instanceof ConfigError) throw error;
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    throw new ConfigError("eng init 需要交互式终端；请在终端中运行，或使用 --help 查看用法");
+  }
+
+  const terminal = createInterface({ input: process.stdin, output: process.stdout });
+  const askText = async (label: string, fallback = ""): Promise<string> => {
+    const hint = fallback ? `（默认：${fallback}）` : "（回车跳过）";
+    const answer = (await terminal.question(`${label}${hint}: `)).trim();
+    return answer || fallback;
+  };
+  const askYesNo = async (label: string, fallback: boolean): Promise<boolean> => {
+    const defaultLabel = fallback ? "Y/n" : "y/N";
+    while (true) {
+      const answer = (await terminal.question(`${label} [${defaultLabel}]: `)).trim().toLowerCase();
+      if (!answer) return fallback;
+      if (["y", "yes", "是"].includes(answer)) return true;
+      if (["n", "no", "否"].includes(answer)) return false;
+      process.stdout.write("请输入 y 或 n。\n");
+    }
+  };
+
+  let profileData: Record<string, unknown>;
+  try {
+    const project: Record<string, string> = {
+      name: await askText("项目名称", path.basename(process.cwd()) || "my-project"),
+      type: await askText("项目类型（如 web-application、api-service、mobile-app）", "application"),
+    };
+    const scale = await askText("项目规模（如 small、medium、large）");
+    if (scale) project.scale = scale;
+
+    const capabilityOptions = [
+      ["backend", "后端"],
+      ["frontend", "前端"],
+      ["database", "数据库"],
+      ["ai", "AI"],
+      ["cache", "缓存"],
+      ["mq", "消息队列"],
+      ["fileStorage", "文件存储"],
+      ["apiDocumentation", "API 文档"],
+      ["authorization", "身份认证与授权"],
+    ] as const;
+    process.stdout.write("\n需要哪些能力？输入序号，多个用逗号分隔；直接回车表示暂不选择：\n");
+    capabilityOptions.forEach(([key, label], index) => process.stdout.write(`  ${index + 1}. ${label} (${key})\n`));
+    let selected: number[] = [];
+    while (true) {
+      const answer = (await terminal.question("能力 [回车跳过]: ")).trim();
+      if (!answer) break;
+      const values = answer.split(/[,，\s]+/).filter(Boolean).map(Number);
+      if (values.every((value) => Number.isInteger(value) && value >= 1 && value <= capabilityOptions.length)) {
+        selected = [...new Set(values)];
+        break;
+      }
+      process.stdout.write(`请输入 1 到 ${capabilityOptions.length} 之间的序号。\n`);
+    }
+
+    const capabilities = Object.fromEntries(
+      selected.map((value) => [capabilityOptions[value - 1]![0], true]),
+    );
+    const stack: Record<string, unknown> = {};
+    if (capabilities.backend) {
+      const backend = {
+        language: await askText("后端语言"),
+        framework: await askText("后端框架"),
+      };
+      stack.backend = Object.fromEntries(Object.entries(backend).filter(([, value]) => value));
+    }
+    if (capabilities.frontend) {
+      const frontend = {
+        framework: await askText("前端框架"),
+        uiLibrary: await askText("UI 组件库"),
+        adminScaffold: await askText("管理后台脚手架"),
+        cssFramework: await askText("CSS 框架"),
+      };
+      stack.frontend = Object.fromEntries(Object.entries(frontend).filter(([, value]) => value));
+    }
+    if (capabilities.database) {
+      const database = {
+        type: await askText("数据库类型"),
+        migrationTool: await askText("数据库迁移工具"),
+      };
+      stack.database = Object.fromEntries(Object.entries(database).filter(([, value]) => value));
+    }
+
+    const deploymentType = await askText("部署类型（如 public、private、offline）");
+    const deployment: Record<string, unknown> = {};
+    if (deploymentType) {
+      deployment.type = deploymentType;
+      deployment.internetAccess = await askYesNo("部署环境是否可访问互联网？", deploymentType !== "offline");
+    }
+    const architecture = await askText("架构偏好（如 modular-monolith）");
+    const simplicity = await askText("简洁性偏好（如 high、medium）");
+
+    profileData = {
+      project,
+      ...(selected.length ? { capabilities } : {}),
+      ...(Object.keys(stack).length ? { stack } : {}),
+      ...(Object.keys(deployment).length ? { deployment } : {}),
+      ...(architecture || simplicity
+        ? { preferences: { ...(architecture ? { architecture } : {}), ...(simplicity ? { simplicity } : {}) } }
+        : {}),
+    };
+  } finally {
+    terminal.close();
+  }
+
+  const profile = stringify(parseProfile(profileData), { lineWidth: 0 });
   try {
     await writeFile(profilePath, profile, { encoding: "utf8", flag: "wx" });
   } catch (error) {
@@ -93,7 +206,7 @@ async function initCommand(options: CommandOptions): Promise<void> {
     }
     throw error;
   }
-  process.stdout.write(`已创建项目 Profile: ${profilePath}\n接下来可运行 eng resolve 生成规则。\n`);
+  process.stdout.write(`\n已创建项目 Profile: ${profilePath}\n接下来可运行 eng resolve 生成规则。\n`);
 }
 
 async function resolveCommand(options: CommandOptions): Promise<void> {
