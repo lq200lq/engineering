@@ -126,6 +126,6 @@
 - Consumes: shipped CLI flags, defaults, supported checks, and exit codes from Tasks 1–3.
 - Produces: installation/build instructions, a minimal `engineering.yaml` + `registry.yaml` example, command examples, and a clear list of deferred commands.
 
-- [ ] Document only commands implemented by the package; distinguish local checkout resolution from deferred remote `sync`.
-- [ ] Check examples against the approved specification and avoid claiming unsupported ecosystems or checkers.
+- [x] Document only commands implemented by the package; distinguish local checkout resolution from deferred remote `sync`.
+- [x] Check examples against the approved specification and avoid claiming unsupported ecosystems or checkers.
 - [ ] Run `npm run build` and `git diff --check`; commit as `补充 CLI 使用说明`.

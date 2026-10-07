@@ -711,9 +711,13 @@ registry 配置
 
 第一版不建议设计太多命令。
 
+本仓库当前只实现 `eng resolve` 和 `eng validate`。本节中 `init`、远程 `sync` 和 `explain` 是后续设计目标，不代表当前 CLI 已支持。
+
 核心保留五个。
 
 ### 13.1 eng init
+
+> 当前未实现。以下内容描述未来的初始化体验。
 
 ```bash
 eng init
@@ -764,10 +768,10 @@ CLAUDE.md
 ### 13.2 eng resolve
 
 ```bash
-eng resolve
+eng resolve --standards <本地 Standards 仓库路径> [--profile <路径>] [--output <路径>] [--upgrade <完整 commit SHA>]
 ```
 
-根据当前 `engineering.yaml` 重新解析应该启用的规则。
+根据当前 `engineering.yaml` 重新解析应该启用的规则。默认 Profile 为 `./engineering.yaml`，默认输出目录为 `./.ai`。Standards 必须是本地 Git checkout；`registry.yaml` 和匹配的 Markdown 规则文件须与 checkout 当前 HEAD 中的已提交内容一致。首次解析锁定当前 HEAD；后续 revision 变化时必须通过 `--upgrade` 显式确认当前完整 commit SHA。此命令不下载 Standards，也不执行远程同步。
 
 适合：
 
@@ -779,6 +783,8 @@ eng resolve
 ---
 
 ### 13.3 eng sync
+
+> 当前未实现。当前版本只支持 `resolve --standards <本地路径>`，不包含远程下载或缓存。
 
 ```bash
 eng sync
@@ -807,10 +813,10 @@ v1.9.0
 ### 13.4 eng validate
 
 ```bash
-eng validate
+eng validate --standards <本地 Standards 仓库路径> [--profile <路径>] [--output <路径>]
 ```
 
-检查当前项目是否违反工程规范。
+检查 Manifest、Profile/Registry 摘要、规则文件和生成树，并运行 Registry 中适用于当前 Profile 的确定性检查。当前检查器只支持项目相对 `file_exists` / `migration_exists` glob，以及 `package.json` 中 `dependencies`、`devDependencies`、`optionalDependencies` 的依赖存在性检查；不比较版本，也不判断自然语言规范。
 
 例如：
 
@@ -820,9 +826,13 @@ eng validate
 - 是否缺少 Migration
 - 是否存在基础结构问题
 
+退出码：`0` 表示没有 mandatory 失败；`1` 表示至少一条 mandatory 检查失败；`2` 表示参数、Schema、Manifest、锁定或 Resolver 错误；`3` 表示检查输入无法确定。Recommended 和 guideline 级结果不会改变退出码。
+
 ---
 
 ### 13.5 eng explain
+
+> 当前未实现。
 
 ```bash
 eng explain redis
@@ -1238,7 +1248,7 @@ AI 在进入设计前已经自动知道：
 
 ## 21. 第一版 MVP 范围
 
-第一版建议严格控制。
+原始产品建议中的第一版范围如下。当前仓库的已实现边界更小，具体以本节末尾的“当前实现”列表为准。
 
 只实现：
 
@@ -1274,6 +1284,12 @@ rules/
 第一版核心目标只有一个：
 
 > 验证这套规范体系能否稳定提升 AI 创建新项目时的工程质量。
+
+### 当前实现
+
+- 已实现：`eng resolve`、`eng validate`、Profile/Registry/Manifest Schema、确定性规则匹配、暂存发布、Manifest 摘要校验，以及 Registry 声明的文件和 `package.json` 依赖检查。
+- 尚未实现：`eng init`、远程 `eng sync`、`eng explain`、AI Adapter、AI Review、CI 集成和服务端。
+- 依赖检查目前仅理解 Node `package.json`；文件 glob 只在项目根目录内检查。
 
 ---
 
