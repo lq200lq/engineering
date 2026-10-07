@@ -146,7 +146,7 @@ export async function validateGeneratedState(
   if (JSON.stringify(actualFiles) !== JSON.stringify(expectedFiles)) {
     throw new ConfigError("resolved 文件与当前 Standards 解析结果不一致，请重新执行 eng resolve");
   }
-  if (hashTree(actualFiles) !== actualManifest.generatedSha256) {
+  if (hashTree(actualFiles.map((file) => ({ ...file, path: `resolved/${file.path}` }))) !== actualManifest.generatedSha256) {
     throw new ConfigError("resolved 树摘要与 Manifest 不一致，请重新执行 eng resolve");
   }
 
