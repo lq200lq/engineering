@@ -127,4 +127,11 @@ mandatory 失败与 unknown 同时出现时，退出码为 `1`。输出按规则
 
 目前实现 `eng resolve` 和 `eng validate`。发布的 npm CLI 使用包内固定 Standards 快照，不下载或切换规范版本；使用本地 Git checkout 时，显式 `--upgrade` 只能确认使用 checkout 当前 HEAD 的完整 commit SHA。发布只替换 `.ai/resolved/` 与 `.ai/manifest.yaml`，保留输出目录内其他内容。
 
-以下能力仍是设计方向，尚未实现：`eng init`、远程 `eng sync`、`eng explain`、AI Review、AI 工具适配器、CI 集成和服务端功能。Validator 也不判断自然语言规范，不比较依赖版本，不支持非 Node 包清单。
+以下能力仍是设计方向，尚未实现：`eng init`、远程 `eng sync`、`eng explain`、AI Review、AI 工具适配器、业务项目中的 CLI CI 集成和服务端功能。Validator 也不判断自然语言规范，不比较依赖版本，不支持非 Node 包清单。
+
+## 参与项目
+
+- [贡献指南](CONTRIBUTING.md)：开发、验证、Pull Request 和规范子仓库工作流。
+- [安全政策](SECURITY.md)：支持版本与私下报告安全漏洞的方式。
+- [贡献者行为准则](CODE_OF_CONDUCT.md)：项目社区行为约定。
+- [变更记录](CHANGELOG.md)：面向用户的版本变更。
